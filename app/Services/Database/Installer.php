@@ -41,6 +41,7 @@ final class Installer
             'storage/ebooks',
             'storage/logs',
             'storage/labels',
+            'storage/reports',
         ] as $relative) {
             $path = $root . '/' . $relative;
             if (!is_dir($path) && !mkdir($path, 0775, true) && !is_dir($path)) {
@@ -88,6 +89,7 @@ final class Installer
             "CREATE TABLE IF NOT EXISTS email_logs (id $auto, to_email VARCHAR(190) NOT NULL, reply_to VARCHAR(190) NULL, subject VARCHAR(255) NOT NULL, template VARCHAR(100) NULL, order_id INTEGER NULL, customer_name VARCHAR(190) NULL, body TEXT NULL, status VARCHAR(40) NOT NULL DEFAULT 'queued', last_error TEXT NULL, attempts INTEGER NOT NULL DEFAULT 0, created_at DATETIME NOT NULL, sent_at DATETIME NULL)",
             "CREATE TABLE IF NOT EXISTS webhook_logs (id $auto, provider VARCHAR(40) NOT NULL, event_type VARCHAR(120) NULL, order_id INTEGER NULL, payload_json $json NULL, headers_json $json NULL, status VARCHAR(40) NOT NULL DEFAULT 'received', message TEXT NULL, created_at DATETIME NOT NULL)",
             "CREATE TABLE IF NOT EXISTS settings (id $auto, name VARCHAR(120) NOT NULL UNIQUE, value TEXT NULL, is_secret $tiny NOT NULL DEFAULT 0, updated_at DATETIME NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS sales_reports (id $auto, period_year INTEGER NOT NULL, period_month INTEGER NOT NULL, period_start DATE NOT NULL, period_end DATE NOT NULL, file_path VARCHAR(255) NULL, status VARCHAR(30) NOT NULL DEFAULT 'generating', recipient_email VARCHAR(190) NULL, send_status VARCHAR(30) NOT NULL DEFAULT 'not_sent', email_log_id INTEGER NULL, orders_count INTEGER NOT NULL DEFAULT 0, units_count INTEGER NOT NULL DEFAULT 0, sales_net DECIMAL(12,2) NOT NULL DEFAULT 0.00, sales_vat DECIMAL(12,2) NOT NULL DEFAULT 0.00, sales_gross DECIMAL(12,2) NOT NULL DEFAULT 0.00, shipping_net DECIMAL(12,2) NOT NULL DEFAULT 0.00, shipping_vat DECIMAL(12,2) NOT NULL DEFAULT 0.00, shipping_gross DECIMAL(12,2) NOT NULL DEFAULT 0.00, discount_gross DECIMAL(12,2) NOT NULL DEFAULT 0.00, refund_net DECIMAL(12,2) NOT NULL DEFAULT 0.00, refund_vat DECIMAL(12,2) NOT NULL DEFAULT 0.00, refund_gross DECIMAL(12,2) NOT NULL DEFAULT 0.00, final_net DECIMAL(12,2) NOT NULL DEFAULT 0.00, final_vat DECIMAL(12,2) NOT NULL DEFAULT 0.00, final_gross DECIMAL(12,2) NOT NULL DEFAULT 0.00, last_error TEXT NULL, generated_at DATETIME NULL, sent_at DATETIME NULL, created_at DATETIME NOT NULL, updated_at DATETIME NULL, UNIQUE(period_year, period_month))",
             "CREATE TABLE IF NOT EXISTS book_images (id $auto, book_id INTEGER NULL, old_wp_id INTEGER NULL, type VARCHAR(40) NOT NULL DEFAULT 'cover', source_url TEXT NULL, path VARCHAR(255) NOT NULL, alt_text VARCHAR(255) NULL, sort_order INTEGER NOT NULL DEFAULT 0, created_at DATETIME NOT NULL)",
         ];
         foreach ($sql as $statement) $pdo->exec($statement);
@@ -119,6 +121,15 @@ final class Installer
         self::addColumnIfMissing($pdo, $driver, 'orders', 'legacy_source', 'VARCHAR(40) NULL');
         self::addColumnIfMissing($pdo, $driver, 'orders', 'legacy_status', 'VARCHAR(80) NULL');
         self::addColumnIfMissing($pdo, $driver, 'orders', 'discount_gross', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'vat_rate', 'DECIMAL(5,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'subtotal_net', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'subtotal_vat', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'discount_net', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'discount_vat', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'shipping_net', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'shipping_vat', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'total_net', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'orders', 'total_vat', 'DECIMAL(10,2) NULL');
         self::addColumnIfMissing($pdo, $driver, 'orders', 'stock_state', "VARCHAR(30) NOT NULL DEFAULT 'not_required'");
         self::addColumnIfMissing($pdo, $driver, 'orders', 'admin_note', 'TEXT NULL');
         self::addColumnIfMissing($pdo, $driver, 'orders', 'integration_notes', 'TEXT NULL');
@@ -131,6 +142,11 @@ final class Installer
         self::addColumnIfMissing($pdo, $driver, 'order_items', 'ebook_file_path', 'VARCHAR(255) NULL');
         self::addColumnIfMissing($pdo, $driver, 'order_items', 'sale_mode', 'VARCHAR(30) NULL');
         self::addColumnIfMissing($pdo, $driver, 'order_items', 'release_date', 'DATE NULL');
+        self::addColumnIfMissing($pdo, $driver, 'order_items', 'vat_rate', 'DECIMAL(5,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'order_items', 'unit_price_net', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'order_items', 'unit_vat', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'order_items', 'total_net', 'DECIMAL(10,2) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'order_items', 'total_vat', 'DECIMAL(10,2) NULL');
         self::addColumnIfMissing($pdo, $driver, 'payments', 'refund_id', 'VARCHAR(190) NULL');
         self::addColumnIfMissing($pdo, $driver, 'payments', 'refund_raw_json', $driver === 'mysql' ? 'JSON NULL' : 'TEXT NULL');
         self::addColumnIfMissing($pdo, $driver, 'payments', 'verified_at', 'DATETIME NULL');
@@ -141,6 +157,7 @@ final class Installer
         self::addColumnIfMissing($pdo, $driver, 'email_logs', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
         self::addColumnIfMissing($pdo, $driver, 'email_logs', 'order_id', 'INTEGER NULL');
         self::addColumnIfMissing($pdo, $driver, 'email_logs', 'customer_name', 'VARCHAR(190) NULL');
+        self::addColumnIfMissing($pdo, $driver, 'email_logs', 'attachments_json', "$json NULL");
     }
 
     private static function addColumnIfMissing(PDO $pdo, string $driver, string $table, string $column, string $definition): void
@@ -181,6 +198,8 @@ final class Installer
             'idx_orders_created_at' => ['orders', ['created_at']],
             'idx_orders_payment_status' => ['orders', ['payment_status']],
             'idx_orders_shipment_status' => ['orders', ['shipment_status']],
+            'idx_orders_paid_at' => ['orders', ['paid_at']],
+            'idx_orders_refunded_at' => ['orders', ['refunded_at']],
             'idx_order_items_order_id' => ['order_items', ['order_id']],
             'idx_order_items_book_id' => ['order_items', ['book_id']],
             'idx_payments_order_id' => ['payments', ['order_id']],
@@ -190,6 +209,7 @@ final class Installer
             'idx_email_logs_status' => ['email_logs', ['status']],
             'idx_email_logs_order_id' => ['email_logs', ['order_id']],
             'idx_webhook_logs_order_id' => ['webhook_logs', ['order_id']],
+            'idx_sales_reports_email_log_id' => ['sales_reports', ['email_log_id']],
             'idx_book_images_book_id' => ['book_images', ['book_id']],
         ];
 
@@ -212,7 +232,7 @@ final class Installer
 
     private static function dropTables(PDO $pdo): void
     {
-        $tables = ['integration_test_runs','stage94_test_runs','migration_checkpoints','legacy_post_import_audits','legacy_validation_runs','legacy_media_import_runs','legacy_import_runs','migration_reports','cache_events','seo_pages','book_category_links','book_categories','book_images','registrations','events','content_pages','registration_forms','mailing_recipients','mailing_campaigns','webhook_logs','email_logs','subscribers','shipments','payments','order_items','orders','customers','users','books','authors','settings','admins'];
+        $tables = ['integration_test_runs','stage94_test_runs','migration_checkpoints','legacy_post_import_audits','legacy_validation_runs','legacy_media_import_runs','legacy_import_runs','migration_reports','cache_events','seo_pages','book_category_links','book_categories','book_images','sales_reports','registrations','events','content_pages','registration_forms','mailing_recipients','mailing_campaigns','webhook_logs','email_logs','subscribers','shipments','payments','order_items','orders','customers','users','books','authors','settings','admins'];
         foreach ($tables as $table) {
             try { $pdo->exec('DROP TABLE IF EXISTS ' . $table); } catch (\Throwable) {}
         }

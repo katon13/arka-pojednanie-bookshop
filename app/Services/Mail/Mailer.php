@@ -3,6 +3,7 @@ namespace Book100\Services\Mail;
 
 use Book100\Core\Database;
 use Book100\Core\Env;
+use Book100\Core\Paths;
 use Book100\Core\StoreUrl;
 use Book100\Core\Utf8Sanitizer;
 use Book100\Repository\SettingsRepository;
@@ -126,7 +127,7 @@ final class Mailer
             }
         }
 
-        $message = $this->buildMessage($to, $from, $fromName, $replyTo, $subject, $html, $unsubscribeUrl);
+        $message = $this->buildMessage($to, $from, $fromName, $replyTo, $subject, $html, $unsubscribeUrl, $this->attachments($row));
 
         if ($transport === 'log') {
             $directory = dirname(__DIR__, 3) . '/storage/logs/mail';
@@ -169,15 +170,16 @@ final class Mailer
         string $replyTo,
         string $subject,
         string $html,
-        string $unsubscribeUrl = ''
+        string $unsubscribeUrl = '',
+        array $attachments = []
     ): array {
         $domain = strtolower((string)substr(strrchr($from, '@') ?: '@localhost', 1));
         if (!preg_match('/^[a-z0-9.-]+$/', $domain)) $domain = 'localhost';
-        $boundary = 'b100_' . bin2hex(random_bytes(18));
+        $boundary = 'b100_alt_' . bin2hex(random_bytes(18));
         $encodedSubject = $this->encodeHeader($subject);
         $encodedName = $this->encodeHeader($fromName);
         $plain = $this->plainText($html);
-        $body = '--' . $boundary . "\r\n"
+        $alternativeBody = '--' . $boundary . "\r\n"
             . "Content-Type: text/plain; charset=UTF-8\r\n"
             . "Content-Transfer-Encoding: quoted-printable\r\n\r\n"
             . quoted_printable_encode($plain) . "\r\n"
@@ -187,6 +189,24 @@ final class Mailer
             . quoted_printable_encode($html) . "\r\n"
             . '--' . $boundary . "--\r\n";
 
+        $contentType = 'multipart/alternative; boundary="' . $boundary . '"';
+        $body = $alternativeBody;
+        if ($attachments !== []) {
+            $mixedBoundary = 'b100_mix_' . bin2hex(random_bytes(18));
+            $body = '--' . $mixedBoundary . "\r\n"
+                . 'Content-Type: multipart/alternative; boundary="' . $boundary . "\"\r\n\r\n"
+                . $alternativeBody;
+            foreach ($attachments as $attachment) {
+                $body .= '--' . $mixedBoundary . "\r\n"
+                    . 'Content-Type: ' . $attachment['mime'] . '; name="' . $attachment['name'] . "\"\r\n"
+                    . "Content-Transfer-Encoding: base64\r\n"
+                    . 'Content-Disposition: attachment; filename="' . $attachment['name'] . "\"\r\n\r\n"
+                    . chunk_split(base64_encode($attachment['data']), 76, "\r\n");
+            }
+            $body .= '--' . $mixedBoundary . "--\r\n";
+            $contentType = 'multipart/mixed; boundary="' . $mixedBoundary . '"';
+        }
+
         $headers = [
             'Date' => date(DATE_RFC2822),
             'Message-ID' => '<' . bin2hex(random_bytes(16)) . '.' . time() . '@' . $domain . '>',
@@ -195,7 +215,7 @@ final class Mailer
             'To' => $to,
             'Subject' => $encodedSubject,
             'MIME-Version' => '1.0',
-            'Content-Type' => 'multipart/alternative; boundary="' . $boundary . '"',
+            'Content-Type' => $contentType,
             'X-Mailer' => 'ARKA Transactional Mailer',
         ];
         if ($unsubscribeUrl !== '') {
@@ -393,6 +413,39 @@ final class Mailer
     {
         $value = trim((string)preg_replace('/[\r\n]+/', '', $value));
         return filter_var($value, FILTER_VALIDATE_URL) ? $value : '';
+    }
+
+    /** @return list<array{name:string,mime:string,data:string}> */
+    private function attachments(array $row): array
+    {
+        $decoded = json_decode((string)($row['attachments_json'] ?? ''), true);
+        if (!is_array($decoded) || $decoded === []) return [];
+        if (count($decoded) > 5) throw new RuntimeException('Wiadomość ma zbyt wiele załączników.');
+        $root = str_replace('\\', '/', Paths::projectRoot());
+        $allowedRoot = $root . '/storage/reports/';
+        $out = [];
+        foreach ($decoded as $attachment) {
+            if (!is_array($attachment)) throw new RuntimeException('Nieprawidłowy opis załącznika.');
+            $relative = str_replace('\\', '/', trim((string)($attachment['path'] ?? '')));
+            $name = trim((string)($attachment['name'] ?? ''));
+            $mime = trim((string)($attachment['mime'] ?? 'application/octet-stream'));
+            if (!preg_match('#^storage/reports/[a-zA-Z0-9._-]+$#D', $relative)
+                || !preg_match('/^[a-zA-Z0-9._-]{1,180}$/D', $name)
+                || !in_array($mime, ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','text/csv'], true)) {
+                throw new RuntimeException('Załącznik wiadomości ma niedozwolony format.');
+            }
+            $path = $root . '/' . $relative;
+            $normalized = str_replace('\\', '/', $path);
+            if (!str_starts_with($normalized, $allowedRoot) || !is_file($path) || !is_readable($path)) {
+                throw new RuntimeException('Nie można odczytać załącznika raportu.');
+            }
+            $size = (int)filesize($path);
+            if ($size <= 0 || $size > 20 * 1024 * 1024) throw new RuntimeException('Załącznik raportu ma nieprawidłowy rozmiar.');
+            $data = file_get_contents($path);
+            if ($data === false) throw new RuntimeException('Nie można odczytać załącznika raportu.');
+            $out[] = ['name'=>$name, 'mime'=>$mime, 'data'=>$data];
+        }
+        return $out;
     }
 
     private function boolEnv(string $key): bool

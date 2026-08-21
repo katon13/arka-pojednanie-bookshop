@@ -2,7 +2,6 @@
 namespace Book100\Services\Payments;
 
 use Book100\Core\Env;
-use Book100\Core\Utf8Sanitizer;
 use Book100\Repository\OrderRepository;
 use Book100\Repository\SettingsRepository;
 use Book100\Services\Http\SimpleHttpClient;
@@ -11,24 +10,25 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
 {
     public function createSession(array $order): array
     {
-        [$merchantId, $posId, $apiKey, $crc] = self::env();
+        $merchantId = (int)Env::get('P24_MERCHANT_ID', '0');
+        $posId = (int)Env::get('P24_POS_ID', (string)$merchantId);
+        $apiKey = Env::get('P24_API_KEY', '');
+        $crc = Env::get('P24_CRC', '');
         if (!$merchantId || !$posId || !$apiKey || !$crc) {
-            return ['status' => 'not_configured', 'message' => 'Brak pelnej konfiguracji P24 w .env. Zamowienie zapisane, ale nie przekierowano do platnosci.'];
+            return ['status' => 'not_configured', 'message' => 'Brak pełnej konfiguracji P24 w .env. Zamówienie zapisane, ale nie przekierowano do płatności.'];
         }
 
-        $sessionId = (string)$order['order_number'];
+        $sessionId = $order['order_number'];
         $amount = (int)round(((float)$order['total_gross']) * 100);
         $currency = $order['currency'] ?? 'PLN';
         $appUrl = rtrim(Env::get('APP_URL', ''), '/');
-        $shopName = Utf8Sanitizer::normalize((string)(new SettingsRepository())->get('shop_name', 'ARKA'));
-        $description = Utf8Sanitizer::normalize('Zamowienie ' . $order['order_number'] . ' - ' . $shopName);
         $payload = [
             'merchantId' => $merchantId,
             'posId' => $posId,
             'sessionId' => $sessionId,
             'amount' => $amount,
             'currency' => $currency,
-            'description' => $description,
+            'description' => 'Zamówienie ' . $order['order_number'] . ' — ' . (new SettingsRepository())->get('shop_name', 'ARKA'),
             'email' => $order['customer_email'],
             'client' => $order['customer_name'],
             'country' => 'PL',
@@ -45,16 +45,7 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
         $response = (new SimpleHttpClient())->postJson($url, $payload, [], [(string)$posId, $apiKey]);
         $token = $response['json']['data']['token'] ?? null;
         if (!$response['ok'] || !$token) {
-            $reason = (string)($response['json']['error'] ?? ($response['json']['message'] ?? ''));
-            $responseCode = (string)($response['json']['responseCode'] ?? '');
-            $status = (string)($response['json']['status'] ?? '');
-            $details = trim(trim($reason . ($status !== '' ? ' ' : '') . $status) . ($responseCode !== '' ? ' (responseCode=' . $responseCode . ')' : ''));
-            return [
-                'status' => 'error',
-                'message' => 'P24 nie zwrócono tokenu transakcji.' . ($details !== '' ? ' Szczegóły: ' . $details : ''),
-                'session_id' => $sessionId,
-                'raw' => $response,
-            ];
+            return ['status' => 'error', 'message' => 'P24 nie zwróciło tokenu transakcji.', 'session_id' => $sessionId, 'raw' => $response];
         }
         return [
             'status' => 'redirected',
@@ -80,9 +71,10 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
         $methodId = isset($data['methodId']) ? (int)$data['methodId'] : 0;
         $statement = (string)($data['statement'] ?? '');
         $receivedSign = (string)($data['sign'] ?? '');
-        [$configuredMerchantId, $configuredPosId] = self::ids();
+        $configuredMerchantId = (int)Env::get('P24_MERCHANT_ID', '0');
+        $configuredPosId = (int)Env::get('P24_POS_ID', (string)$configuredMerchantId);
         if (!$merchantId || !$posId || !$sessionId || !$amount || !$originAmount || !$crc || !$orderIdP24 || !$methodId || $statement === '' || !$receivedSign) {
-            return ['ok'=>false, 'status'=>'missing_fields', 'message'=>'Brak wymaganych pol lub podpisu P24.'];
+            return ['ok'=>false, 'status'=>'missing_fields', 'message'=>'Brak wymaganych pól lub podpisu P24.'];
         }
         if ($merchantId !== $configuredMerchantId || $posId !== $configuredPosId) {
             return ['ok'=>false, 'status'=>'merchant_mismatch', 'message'=>'Niezgodny sprzedawca P24.'];
@@ -104,18 +96,21 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
         }
         $repo = new OrderRepository();
         $order = $repo->findByPaymentSession('przelewy24', $sessionId) ?: $repo->findByOrderNumber($sessionId);
-        if (!$order) return ['ok' => false, 'status' => 'order_not_found', 'message' => 'Nie znaleziono zamowienia dla sessionId.'];
-        if ((int)round(((float)$order['total_gross']) * 100) !== $amount) return ['ok' => false, 'status' => 'amount_mismatch', 'message' => 'Kwota P24 nie zgadza sie z zamowieniem.'];
+        if (!$order) return ['ok' => false, 'status' => 'order_not_found', 'message' => 'Nie znaleziono zamówienia dla sessionId.'];
+        if ((int)round(((float)$order['total_gross']) * 100) !== $amount) return ['ok' => false, 'status' => 'amount_mismatch', 'message' => 'Kwota P24 nie zgadza się z zamówieniem.'];
         $verify = $this->verifyTransaction($sessionId, $orderIdP24, $amount, $currency);
-        if (!$verify['ok']) return ['ok' => false, 'status' => 'verify_failed', 'message' => 'P24 verifyTransaction nie potwierdzilo platnosci.', 'raw' => $verify];
+        if (!$verify['ok']) return ['ok' => false, 'status' => 'verify_failed', 'message' => 'P24 verifyTransaction nie potwierdziło płatności.', 'raw' => $verify];
         $repo->markPaid((int)$order['id'], 'przelewy24', $orderIdP24 ? (string)$orderIdP24 : null, $data);
         return ['ok' => true, 'status' => 'paid', 'order_id' => (int)$order['id']];
     }
 
     private function verifyTransaction(string $sessionId, ?int $orderIdP24, int $amount, string $currency): array
     {
-        [$merchantId, $posId, $apiKey, $crc] = self::env();
-        if (!$orderIdP24 || !$apiKey || !$crc) return ['ok'=>false, 'status'=>'missing_order_id'];
+        $merchantId = (int)Env::get('P24_MERCHANT_ID', '0');
+        $posId = (int)Env::get('P24_POS_ID', (string)$merchantId);
+        $apiKey = Env::get('P24_API_KEY', '');
+        $crc = Env::get('P24_CRC', '');
+        if (!$orderIdP24) return ['ok'=>false, 'status'=>'missing_order_id'];
         $payload = [
             'merchantId' => $merchantId,
             'posId' => $posId,
@@ -140,10 +135,11 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
 
     public function refund(array $order, array $payment): array
     {
-        [$merchantId, $posId, $apiKey] = self::env();
+        $posId = (int)Env::get('P24_POS_ID', Env::get('P24_MERCHANT_ID', '0'));
+        $apiKey = (string)Env::get('P24_API_KEY', '');
         $providerOrderId = (int)($payment['provider_payment_id'] ?? 0);
         if (!$posId || $apiKey === '' || !$providerOrderId) {
-            return ['ok'=>false, 'message'=>'Brak konfiguracji P24 albo identyfikatora oplaconej transakcji.'];
+            return ['ok'=>false, 'message'=>'Brak konfiguracji P24 albo identyfikatora opłaconej transakcji.'];
         }
         $refundsUuid = bin2hex(random_bytes(16));
         $requestId = substr('ARKA-' . $order['id'] . '-' . date('YmdHis'), 0, 45);
@@ -153,7 +149,7 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
                 'orderId'=>$providerOrderId,
                 'sessionId'=>(string)$order['order_number'],
                 'amount'=>(int)round((float)$order['total_gross'] * 100),
-                'description'=>'Zwrot zamowienia ' . $order['order_number'],
+                'description'=>'Zwrot zamówienia ' . $order['order_number'],
             ]],
             'refundsUuid'=>$refundsUuid,
             'urlStatus'=>rtrim((string)Env::get('APP_URL', ''), '/') . '/api/webhooks/przelewy24/refund',
@@ -171,7 +167,7 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
             'ok'=>$accepted,
             'finalized'=>false,
             'refund_id'=>$refundsUuid,
-            'message'=>$accepted ? 'Zwrot P24 zostal przyjety i oczekuje na koncowe potwierdzenie.' : 'P24 nie przyjeto zwrotu.',
+            'message'=>$accepted ? 'Zwrot P24 został przyjęty i oczekuje na końcowe potwierdzenie.' : 'P24 nie przyjęło zwrotu.',
             'raw'=>$response,
         ];
     }
@@ -185,7 +181,7 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
         $required = ['orderId','sessionId','refundsUuid','merchantId','amount','currency','status','sign'];
         foreach ($required as $field) {
             if (!array_key_exists($field, $data) || $data[$field] === '') {
-                return ['ok'=>false, 'status'=>'missing_fields', 'message'=>'Brak wymaganych pol zwrotu P24.'];
+                return ['ok'=>false, 'status'=>'missing_fields', 'message'=>'Brak wymaganych pól zwrotu P24.'];
             }
         }
         $merchantId = (int)$data['merchantId'];
@@ -212,7 +208,7 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
         $repo = new OrderRepository();
         $order = $repo->findByOrderNumber((string)$data['sessionId']);
         if (!$order) {
-            return ['ok'=>false, 'status'=>'order_not_found', 'message'=>'Nie znaleziono zamowienia zwrotu P24.'];
+            return ['ok'=>false, 'status'=>'order_not_found', 'message'=>'Nie znaleziono zamówienia zwrotu P24.'];
         }
         $payment = $repo->paymentForOrder((int)$order['id']);
         if (!$payment
@@ -220,7 +216,7 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
             || (string)($payment['refund_id'] ?? '') !== (string)$data['refundsUuid']
             || (int)$data['amount'] !== (int)round((float)$order['total_gross'] * 100)
             || strtoupper((string)$data['currency']) !== strtoupper((string)$order['currency'])) {
-            return ['ok'=>false, 'status'=>'refund_mismatch', 'message'=>'Dane zwrotu P24 nie zgadzaja sie z zamowieniem.'];
+            return ['ok'=>false, 'status'=>'refund_mismatch', 'message'=>'Dane zwrotu P24 nie zgadzają się z zamówieniem.'];
         }
 
         if ((int)$data['status'] === 0) {
@@ -239,24 +235,6 @@ final class Przelewy24Gateway implements PaymentGatewayInterface
     private function baseUrl(): string
     {
         return Env::get('P24_MODE', 'sandbox') === 'production' ? 'https://secure.przelewy24.pl' : 'https://sandbox.przelewy24.pl';
-    }
-
-    private static function env(): array
-    {
-        $merchantId = (int)trim((string)Env::get('P24_MERCHANT_ID', ''));
-        $rawPosId = trim((string)Env::get('P24_POS_ID', ''));
-        $posId = $rawPosId === '' ? $merchantId : (int)$rawPosId;
-        $apiKey = trim((string)Env::get('P24_API_KEY', ''));
-        $crc = trim((string)Env::get('P24_CRC', ''));
-        return [$merchantId, $posId, $apiKey, $crc];
-    }
-
-    private static function ids(): array
-    {
-        $merchantId = (int)trim((string)Env::get('P24_MERCHANT_ID', ''));
-        $rawPosId = trim((string)Env::get('P24_POS_ID', ''));
-        $posId = $rawPosId === '' ? $merchantId : (int)$rawPosId;
-        return [$merchantId, $posId];
     }
 
     private static function signRegister(string $sessionId, int $merchantId, int $amount, string $currency, string $crc): string

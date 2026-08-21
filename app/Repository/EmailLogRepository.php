@@ -14,14 +14,15 @@ final class EmailLogRepository
         string $body,
         string $template,
         string $customerName = '',
-        string $replyTo = ''
+        string $replyTo = '',
+        array $attachments = []
     ): int {
         $subject = Utf8Sanitizer::normalize($subject);
         $body = Utf8Sanitizer::normalize($body);
         $stmt = Database::pdo()->prepare(
             'INSERT INTO email_logs
-             (to_email, reply_to, subject, template, customer_name, body, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+             (to_email, reply_to, subject, template, customer_name, body, attachments_json, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             trim($to),
@@ -30,6 +31,7 @@ final class EmailLogRepository
             trim($template),
             trim($customerName) ?: null,
             $body,
+            $attachments === [] ? null : json_encode($attachments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'queued',
             date('Y-m-d H:i:s'),
         ]);

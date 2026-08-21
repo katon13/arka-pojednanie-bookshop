@@ -7,6 +7,7 @@ use Book100\Core\StoreUrl;
 use Book100\Core\Utf8Sanitizer;
 use Book100\Services\Mail\EmailTemplate;
 use Book100\Services\Mail\Mailer;
+use Book100\Services\Sales\Money;
 use PDO;
 use RuntimeException;
 
@@ -44,13 +45,26 @@ final class OrderRepository
         $hasPaper = false;
         $hasEbook = false;
         $subtotal = 0.0;
+        $subtotalNetCents = 0;
+        $subtotalVatCents = 0;
+        $settings = new SettingsRepository();
+        $vatRate = Money::normalizedRate($settings->get('sales_vat_rate', '5.00'));
         foreach ($books as $book) {
             $isEbook = ($book['product_type'] ?? 'paper') === 'ebook';
             $qty = $isEbook ? 1 : max(1, min(20, (int)($book['checkout_quantity'] ?? 1)));
             $price = round((float)$book['price_gross'], 2);
             $lineTotal = round($price * $qty, 2);
-            $items[] = ['book'=>$book, 'quantity'=>$qty, 'price'=>$price, 'total'=>$lineTotal, 'is_ebook'=>$isEbook];
+            $unitSplit = Money::splitGross(Money::cents(number_format($price, 2, '.', '')), $vatRate);
+            $lineSplit = Money::splitGross(Money::cents(number_format($lineTotal, 2, '.', '')), $vatRate);
+            $items[] = [
+                'book'=>$book, 'quantity'=>$qty, 'price'=>$price, 'total'=>$lineTotal, 'is_ebook'=>$isEbook,
+                'vat_rate'=>$vatRate,
+                'unit_net'=>Money::decimal($unitSplit['net']), 'unit_vat'=>Money::decimal($unitSplit['vat']),
+                'total_net'=>Money::decimal($lineSplit['net']), 'total_vat'=>Money::decimal($lineSplit['vat']),
+            ];
             $subtotal = round($subtotal + $lineTotal, 2);
+            $subtotalNetCents += $lineSplit['net'];
+            $subtotalVatCents += $lineSplit['vat'];
             $hasEbook = $hasEbook || $isEbook;
             $hasPaper = $hasPaper || !$isEbook;
         }
@@ -58,10 +72,13 @@ final class OrderRepository
             throw new RuntimeException('Zamówienie nie zawiera żadnej książki.');
         }
         $deliveryMethod = $hasPaper ? (string)($data['delivery_method'] ?? 'inpost_locker') : 'ebook';
-        $settings = new SettingsRepository();
         $shipping = $settings->shippingCost($deliveryMethod);
+        $shippingSplit = Money::splitGross(Money::cents(number_format($shipping, 2, '.', '')), $vatRate);
+        $discountSplit = Money::splitGross(0, $vatRate);
         $termsSnapshot = $settings->get('terms_text', '');
         $total = round($subtotal + $shipping, 2);
+        $totalNetCents = $subtotalNetCents - $discountSplit['net'] + $shippingSplit['net'];
+        $totalVatCents = $subtotalVatCents - $discountSplit['vat'] + $shippingSplit['vat'];
         $paymentProvider = (string)($data['payment_provider'] ?? Env::get('PAYMENT_PRIMARY', 'przelewy24'));
         $customerName = trim((string)($data['customer_name'] ?? ''));
         $customerEmail = trim((string)($data['customer_email'] ?? ''));
@@ -97,12 +114,16 @@ final class OrderRepository
                 (order_number, order_token, status, customer_email, customer_name, customer_phone,
                  billing_address_json, shipping_address_json, delivery_method, inpost_point,
                  subtotal_gross, discount_gross, shipping_gross, total_gross, currency,
+                 vat_rate, subtotal_net, subtotal_vat, discount_net, discount_vat,
+                 shipping_net, shipping_vat, total_net, total_vat,
                  payment_provider, payment_status, shipment_status, stock_state, terms_accepted_at,
                  terms_snapshot, digital_content_consent_at, created_at, updated_at)
                 VALUES
                 (:order_number,:order_token,:status,:customer_email,:customer_name,:customer_phone,
                  :billing_address_json,:shipping_address_json,:delivery_method,:inpost_point,
                  :subtotal_gross,0,:shipping_gross,:total_gross,:currency,
+                 :vat_rate,:subtotal_net,:subtotal_vat,:discount_net,:discount_vat,
+                 :shipping_net,:shipping_vat,:total_net,:total_vat,
                  :payment_provider,:payment_status,:shipment_status,:stock_state,:terms_accepted_at,
                  :terms_snapshot,:digital_content_consent_at,:created_at,:updated_at)'
             );
@@ -131,6 +152,15 @@ final class OrderRepository
                 ':shipping_gross' => $shipping,
                 ':total_gross' => $total,
                 ':currency' => 'PLN',
+                ':vat_rate' => $vatRate,
+                ':subtotal_net' => Money::decimal($subtotalNetCents),
+                ':subtotal_vat' => Money::decimal($subtotalVatCents),
+                ':discount_net' => Money::decimal($discountSplit['net']),
+                ':discount_vat' => Money::decimal($discountSplit['vat']),
+                ':shipping_net' => Money::decimal($shippingSplit['net']),
+                ':shipping_vat' => Money::decimal($shippingSplit['vat']),
+                ':total_net' => Money::decimal($totalNetCents),
+                ':total_vat' => Money::decimal($totalVatCents),
                 ':payment_provider' => $paymentProvider,
                 ':payment_status' => 'created',
                 ':shipment_status' => $hasPaper ? 'not_created' : 'not_required',
@@ -145,8 +175,10 @@ final class OrderRepository
 
             $item = $pdo->prepare(
                 'INSERT INTO order_items
-                (order_id, book_id, old_product_id, sku, title, quantity, unit_price_gross, total_gross, ebook_file_path, sale_mode, release_date)
-                VALUES (:order_id,:book_id,:old_product_id,:sku,:title,:quantity,:unit_price_gross,:total_gross,:ebook_file_path,:sale_mode,:release_date)'
+                (order_id, book_id, old_product_id, sku, title, quantity, unit_price_gross, total_gross,
+                 vat_rate, unit_price_net, unit_vat, total_net, total_vat, ebook_file_path, sale_mode, release_date)
+                VALUES (:order_id,:book_id,:old_product_id,:sku,:title,:quantity,:unit_price_gross,:total_gross,
+                 :vat_rate,:unit_price_net,:unit_vat,:total_net,:total_vat,:ebook_file_path,:sale_mode,:release_date)'
             );
             foreach ($items as $line) {
                 $book = $line['book'];
@@ -159,6 +191,11 @@ final class OrderRepository
                     ':quantity'=>$line['quantity'],
                     ':unit_price_gross'=>$line['price'],
                     ':total_gross'=>$line['total'],
+                    ':vat_rate'=>$line['vat_rate'],
+                    ':unit_price_net'=>$line['unit_net'],
+                    ':unit_vat'=>$line['unit_vat'],
+                    ':total_net'=>$line['total_net'],
+                    ':total_vat'=>$line['total_vat'],
                     ':ebook_file_path'=>!empty($line['is_ebook']) ? ($book['ebook_file_path'] ?? null) : null,
                     ':sale_mode'=>(string)($book['status'] ?? 'active'),
                     ':release_date'=>trim((string)($book['release_date'] ?? '')) ?: null,

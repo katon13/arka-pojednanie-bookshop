@@ -237,15 +237,34 @@ $ogImage = trim((string)($s['seo_default_og_image'] ?? ''));
 
   <section class="panel-section settings-section" id="sprzedaz">
     <div class="section-heading">
-      <div><p class="section-label">SPRZEDAŻ</p><h2>Waluta i koszty dostawy</h2></div>
+      <div><p class="section-label">SPRZEDAŻ</p><h2>Rozliczenia i koszty dostawy</h2></div>
       <a class="text-button" href="/integrations">Płatności i InPost są w Integracjach →</a>
     </div>
     <div class="settings-grid settings-grid--four">
       <label class="field">Waluta<input name="currency" maxlength="3" value="<?= htmlspecialchars($s['currency'] ?? 'PLN') ?>"></label>
+      <label class="field">Stawka VAT dla książek (%)<input name="sales_vat_rate" inputmode="decimal" maxlength="6" required value="<?= htmlspecialchars($s['sales_vat_rate'] ?? '5.00') ?>"><small>Domyślnie 5%. Zmiana dotyczy nowych zamówień.</small></label>
       <label class="field">Domyślny koszt dostawy<input name="shipping_default_gross" inputmode="decimal" value="<?= htmlspecialchars($s['shipping_default_gross'] ?? '0.00') ?>"></label>
       <label class="field">InPost Paczkomat brutto<input name="shipping_inpost_locker_gross" inputmode="decimal" value="<?= htmlspecialchars($s['shipping_inpost_locker_gross'] ?? '0.00') ?>"></label>
       <label class="field">InPost Kurier brutto<input name="shipping_inpost_courier_gross" inputmode="decimal" value="<?= htmlspecialchars($s['shipping_inpost_courier_gross'] ?? '0.00') ?>"></label>
     </div>
+
+    <h3 class="settings-subheading">Dane podmiotu na raporcie</h3>
+    <div class="settings-grid settings-grid--three">
+      <label class="field">Nazwa podmiotu<input name="seller_legal_name" maxlength="190" required value="<?= htmlspecialchars($s['seller_legal_name'] ?? 'Agencja ARKA') ?>"></label>
+      <label class="field">Imię i nazwisko<input name="seller_owner_name" maxlength="190" required value="<?= htmlspecialchars($s['seller_owner_name'] ?? 'Maciej Karwacki-Niecewicz') ?>"></label>
+      <label class="field">NIP<input name="seller_nip" inputmode="numeric" maxlength="15" required value="<?= htmlspecialchars($s['seller_nip'] ?? '7791563475') ?>"></label>
+      <label class="field">Ulica i numer<input name="seller_street" maxlength="190" required value="<?= htmlspecialchars($s['seller_street'] ?? 'ul. Św. Wawrzyńca 38/10') ?>"></label>
+      <label class="field">Kod pocztowy<input name="seller_post_code" maxlength="12" required value="<?= htmlspecialchars($s['seller_post_code'] ?? '31-052') ?>"></label>
+      <label class="field">Miasto<input name="seller_city" maxlength="120" required value="<?= htmlspecialchars($s['seller_city'] ?? 'Kraków') ?>"></label>
+    </div>
+
+    <h3 class="settings-subheading">Automatyczny raport sprzedaży</h3>
+    <div class="settings-grid settings-grid--three">
+      <label class="check-field"><input type="checkbox" name="sales_report_enabled" value="1" <?= ($s['sales_report_enabled'] ?? '0') === '1' ? 'checked' : '' ?>> Wysyłaj raport cyklicznie</label>
+      <label class="field">Dzień miesiąca<input name="sales_report_day" type="number" min="1" max="28" required value="<?= htmlspecialchars($s['sales_report_day'] ?? '5') ?>"><small>Raport zostanie przygotowany za poprzedni pełny miesiąc.</small></label>
+      <label class="field">E-mail księgowości<input name="sales_report_email" type="email" maxlength="190" value="<?= htmlspecialchars($s['sales_report_email'] ?? '') ?>" placeholder="ksiegowosc@example.pl"></label>
+    </div>
+    <p class="muted">Istniejący cron poczty sprawdza termin i nie utworzy drugiego raportu za ten sam miesiąc.</p>
   </section>
 
   <section class="panel-section settings-section" id="dokumenty">

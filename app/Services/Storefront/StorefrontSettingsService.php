@@ -5,6 +5,7 @@ use Book100\Core\Paths;
 use Book100\Core\StoreUrl;
 use Book100\Repository\SettingsRepository;
 use Book100\Services\Media\ImageOptimizer;
+use Book100\Services\Sales\Money;
 use RuntimeException;
 
 final class StorefrontSettingsService
@@ -46,6 +47,15 @@ final class StorefrontSettingsService
         'checkout_assurance_2' => 100,
         'checkout_assurance_paper' => 120,
         'checkout_assurance_ebook' => 120,
+        'seller_legal_name' => 190,
+        'seller_owner_name' => 190,
+        'seller_street' => 190,
+        'seller_post_code' => 12,
+        'seller_city' => 120,
+        'seller_nip' => 15,
+        'sales_vat_rate' => 6,
+        'sales_report_day' => 2,
+        'sales_report_email' => 190,
     ];
 
     private const LONG_LIMITS = [
@@ -80,6 +90,16 @@ final class StorefrontSettingsService
             'shipping_default_gross' => '12.00',
             'shipping_inpost_locker_gross' => '12.00',
             'shipping_inpost_courier_gross' => '16.00',
+            'seller_legal_name' => 'Agencja ARKA',
+            'seller_owner_name' => 'Maciej Karwacki-Niecewicz',
+            'seller_street' => 'ul. Św. Wawrzyńca 38/10',
+            'seller_post_code' => '31-052',
+            'seller_city' => 'Kraków',
+            'seller_nip' => '7791563475',
+            'sales_vat_rate' => '5.00',
+            'sales_report_enabled' => '0',
+            'sales_report_day' => '5',
+            'sales_report_email' => '',
             'maintenance_enabled' => '0',
             'maintenance_message' => 'Konserwacja systemu — prosimy nie dokonywać zakupu.',
 
@@ -161,6 +181,7 @@ final class StorefrontSettingsService
             $values[$name] = $this->text($input[$name] ?? $current[$name] ?? '', $name, $limit, true);
         }
         $values['maintenance_enabled'] = !empty($input['maintenance_enabled']) ? '1' : '0';
+        $values['sales_report_enabled'] = !empty($input['sales_report_enabled']) ? '1' : '0';
 
         if ($values['shop_name'] === '') {
             throw new RuntimeException('Nazwa sklepu jest wymagana.');
@@ -179,6 +200,28 @@ final class StorefrontSettingsService
             throw new RuntimeException('Waluta musi mieć trzyliterowy kod, np. PLN.');
         }
         $values['currency'] = $currency;
+
+        foreach (['seller_legal_name'=>'nazwa podmiotu', 'seller_owner_name'=>'imię i nazwisko', 'seller_street'=>'ulica', 'seller_post_code'=>'kod pocztowy', 'seller_city'=>'miasto'] as $key => $label) {
+            if ($values[$key] === '') throw new RuntimeException('Uzupełnij dane podmiotu: ' . $label . '.');
+        }
+        $nip = preg_replace('/\D+/', '', $values['seller_nip']) ?? '';
+        if (!preg_match('/^\d{10}$/D', $nip)) throw new RuntimeException('NIP podmiotu musi zawierać 10 cyfr.');
+        $values['seller_nip'] = $nip;
+
+        $values['sales_vat_rate'] = Money::normalizedRate($input['sales_vat_rate'] ?? $current['sales_vat_rate'] ?? '5.00');
+        $reportDay = filter_var($input['sales_report_day'] ?? $current['sales_report_day'] ?? 5, FILTER_VALIDATE_INT);
+        if ($reportDay === false || $reportDay < 1 || $reportDay > 28) {
+            throw new RuntimeException('Dzień raportu musi mieścić się w zakresie od 1 do 28.');
+        }
+        $values['sales_report_day'] = (string)$reportDay;
+        $reportEmail = trim((string)($input['sales_report_email'] ?? $current['sales_report_email'] ?? ''));
+        if ($reportEmail !== '' && !filter_var($reportEmail, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('Podaj poprawny e-mail raportu sprzedaży.');
+        }
+        if ($values['sales_report_enabled'] === '1' && $reportEmail === '') {
+            throw new RuntimeException('Podaj e-mail raportu przed włączeniem automatycznej wysyłki.');
+        }
+        $values['sales_report_email'] = $reportEmail;
 
         foreach (['shipping_default_gross','shipping_inpost_locker_gross','shipping_inpost_courier_gross'] as $priceKey) {
             $raw = str_replace(',', '.', trim((string)($input[$priceKey] ?? $current[$priceKey] ?? '0')));

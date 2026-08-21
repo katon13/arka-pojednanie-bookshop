@@ -17,6 +17,7 @@ use Book100\Repository\ShipmentRepository;
 use Book100\Repository\SubscriberRepository;
 use Book100\Repository\MailingRepository;
 use Book100\Repository\SettingsRepository;
+use Book100\Repository\SalesReportRepository;
 use Book100\Services\Auth\AdminAuth;
 use Book100\Services\Auth\AdminTwoFactor;
 use Book100\Services\Cache\PublicCache;
@@ -31,6 +32,7 @@ use Book100\Services\Media\RichContentMediaService;
 use Book100\Services\Mail\Mailer;
 use Book100\Services\Payments\PaymentService;
 use Book100\Services\Storefront\StorefrontSettingsService;
+use Book100\Services\Sales\SalesReportService;
 use Throwable;
 
 final class AdminController
@@ -131,10 +133,12 @@ final class AdminController
     public function sales(): void
     {
         AdminAuth::requireLogin();
-        $repo = new OrderRepository();
+        $service = new SalesReportService();
+        $period = $service->selectedPeriod($_GET['year'] ?? null, $_GET['month'] ?? null);
         View::render('admin/sales/index', [
-            'rows' => $repo->salesRows(),
-            'stats' => $repo->salesSummary(),
+            'dataset' => $service->dataset((int)$period['year'], (int)$period['month']),
+            'reports' => $service->reports(),
+            'reportSettings' => (new StorefrontSettingsService())->state(),
             'user' => AdminAuth::user(),
         ]);
     }
@@ -343,26 +347,96 @@ final class AdminController
     public function salesExport(): void
     {
         AdminAuth::requireLogin();
-        $rows = (new OrderRepository())->salesRows(10000);
+        $service = new SalesReportService();
+        $period = $service->selectedPeriod($_GET['year'] ?? null, $_GET['month'] ?? null);
+        $dataset = $service->dataset((int)$period['year'], (int)$period['month']);
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="arka-sprzedaz-' . date('Ymd-His') . '.csv"');
-        $out = fopen('php://output', 'w');
-        fputcsv($out, ['data','zamowienie','email','ksiazka','ilosc','wartosc','platnosc','status_platnosci','dostawa','status'], ';');
-        foreach ($rows as $row) {
-            fputcsv($out, [
-                $row['created_at'] ?? '',
-                $row['order_number'] ?? '',
-                $row['customer_email'] ?? '',
-                $row['title'] ?? '',
-                $row['quantity'] ?? 0,
-                $row['item_total'] ?? 0,
-                $row['payment_provider'] ?? '',
-                $row['payment_status'] ?? '',
-                $row['delivery_method'] ?? '',
-                $row['status'] ?? '',
-            ], ';');
+        header('Content-Disposition: attachment; filename="sprzedaz-' . sprintf('%04d-%02d', $period['year'], $period['month']) . '.csv"');
+        echo $service->csv($dataset);
+    }
+
+    public function salesExportXlsx(): void
+    {
+        AdminAuth::requireLogin();
+        $service = new SalesReportService();
+        $period = $service->selectedPeriod($_GET['year'] ?? null, $_GET['month'] ?? null);
+        $dataset = $service->dataset((int)$period['year'], (int)$period['month']);
+        $directory = dirname(__DIR__, 2) . '/storage/reports';
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new \RuntimeException('Nie można utworzyć katalogu raportów.');
         }
-        fclose($out);
+        $path = $directory . '/.export-' . bin2hex(random_bytes(8)) . '.xlsx';
+        try {
+            $service->writeXlsx($dataset, $path);
+            $filename = 'sprzedaz-' . sprintf('%04d-%02d', $period['year'], $period['month']) . '.xlsx';
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . filesize($path));
+            readfile($path);
+        } finally {
+            if (is_file($path)) @unlink($path);
+        }
+    }
+
+    public function generateSalesReport(): void
+    {
+        AdminAuth::requireLogin(); Csrf::check();
+        try {
+            $service = new SalesReportService();
+            $period = $service->selectedPeriod($_POST['year'] ?? null, $_POST['month'] ?? null);
+            $recipient = trim((string)($_POST['recipient_email'] ?? ''));
+            $report = $service->generateStored((int)$period['year'], (int)$period['month'], $recipient);
+            View::render('admin/message', [
+                'title'=>'Raport wygenerowany',
+                'message'=>'Raport za ' . $period['label'] . ' został zapisany. Możesz go pobrać lub wysłać z historii raportów.',
+                'backUrl'=>'/sales?year=' . $period['year'] . '&month=' . $period['month'],
+                'user'=>AdminAuth::user(),
+            ]);
+        } catch (Throwable $exception) {
+            http_response_code(422);
+            View::render('admin/message', [
+                'title'=>'Nie wygenerowano raportu', 'message'=>$exception->getMessage(), 'backUrl'=>'/sales', 'user'=>AdminAuth::user(),
+            ]);
+        }
+    }
+
+    public function downloadSalesReport(string $id): void
+    {
+        AdminAuth::requireLogin();
+        $report = (new SalesReportRepository())->find((int)$id);
+        $service = new SalesReportService();
+        $path = $report ? $service->absoluteReportPath((string)($report['file_path'] ?? '')) : null;
+        if (!$report || $path === null || !is_file($path)) {
+            http_response_code(404);
+            echo '404';
+            return;
+        }
+        $filename = 'sprzedaz-' . sprintf('%04d-%02d', (int)$report['period_year'], (int)$report['period_month']) . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($path));
+        readfile($path);
+    }
+
+    public function resendSalesReport(string $id): void
+    {
+        AdminAuth::requireLogin(); Csrf::check();
+        try {
+            $recipient = trim((string)($_POST['recipient_email'] ?? ''));
+            $report = (new SalesReportService())->resend((int)$id, $recipient);
+            $sent = ($report['send_status'] ?? '') === 'sent';
+            if (!$sent) http_response_code(422);
+            View::render('admin/message', [
+                'title'=>$sent ? 'Raport wysłany' : 'Raport oczekuje na ponowienie',
+                'message'=>$sent ? 'Serwer pocztowy przyjął raport do wysyłki.' : ((string)($report['last_error'] ?? '') ?: 'Wysyłka nie powiodła się. Raport pozostał zapisany.'),
+                'backUrl'=>'/sales', 'user'=>AdminAuth::user(),
+            ]);
+        } catch (Throwable $exception) {
+            http_response_code(422);
+            View::render('admin/message', [
+                'title'=>'Nie wysłano raportu', 'message'=>$exception->getMessage(), 'backUrl'=>'/sales', 'user'=>AdminAuth::user(),
+            ]);
+        }
     }
 
     public function settings(): void
