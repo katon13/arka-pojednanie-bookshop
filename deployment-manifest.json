@@ -1,0 +1,17 @@
+{
+    "generated_at": "2026-07-31T13:32:48+00:00",
+    "project": "Wydawnictwo Katolickie ARKA",
+    "canonical_url": "https://arka-pojednanie.pl",
+    "php_minimum": "8.2",
+    "database": {
+        "driver": "mysql",
+        "included": false,
+        "install_command": "php scripts/install.php"
+    },
+    "payments": {
+        "primary": "przelewy24",
+        "credentials_included": false,
+        "mode_in_template": "sandbox"
+    },
+    "secrets_included": false
+}

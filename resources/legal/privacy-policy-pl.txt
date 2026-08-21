@@ -1,0 +1,150 @@
+Polityka prywatności i plików cookies
+
+Niniejsza polityka wyjaśnia, jakie dane osobowe są przetwarzane w sklepie internetowym arka-pojednanie.pl, w jakich celach, na jakiej podstawie i jakie prawa przysługują osobom korzystającym ze sklepu.
+
+## 1. Administrator danych i kontakt
+
+Administratorem danych osobowych związanych z prowadzeniem sklepu arka-pojednanie.pl jest Maciej Karwacki-Niecewicz, prowadzący działalność pod firmą Agencja ARKA, NIP 7791563475.
+
+Adres do korespondencji: ul. Św. Wawrzyńca 38/10, 31-052 Kraków.
+
+Kontakt w sprawach prywatności, sprawach ogólnych i dotyczących zamówień: biuro@arka-pojednanie.pl.
+Administrator nie wyznaczył inspektora ochrony danych. W sprawach dotyczących danych osobowych można skontaktować się bezpośrednio na adres biuro@arka-pojednanie.pl.
+
+## 2. Jakie dane są przetwarzane
+
+W zależności od sposobu korzystania ze sklepu mogą być przetwarzane:
+
+- dane identyfikacyjne i kontaktowe, w szczególności imię i nazwisko, adres e-mail oraz numer telefonu;
+- dane dostawy, w szczególności adres pocztowy albo kod wybranego Paczkomatu lub punktu InPost;
+- dane zamówienia, w szczególności wybrane książki, liczba egzemplarzy, kwoty, sposób dostawy, status realizacji, reklamacje, zwroty i korespondencja;
+- dane dotyczące płatności otrzymywane od operatora Przelewy24, w szczególności identyfikator i status transakcji oraz zapłacona kwota. Sklep nie otrzymuje ani nie przechowuje danych logowania do banku ani kodu BLIK;
+- dane związane z zakupem e-booka, w tym informacja o udzieleniu zgody na rozpoczęcie dostarczania treści cyfrowej przed upływem terminu odstąpienia oraz dane potrzebne do utworzenia indywidualnego linku pobrania;
+- adres e-mail i informacje o zgodzie na newsletter, jeżeli użytkownik dobrowolnie się zapisze;
+- dane wpisane w formularzu zgłoszeniowym, informacje o wybranej stronie lub wydarzeniu, status zgłoszenia, notatki organizacyjne oraz data wyrażenia zgody;
+- treść wiadomości przesłanych pocztą elektroniczną albo przez czat Tawk.to;
+- dane techniczne zapisywane podczas korzystania ze strony, takie jak adres IP, data i czas żądania, adres odwiedzanej strony, rodzaj przeglądarki i urządzenia, identyfikatory sesji oraz informacje niezbędne do bezpieczeństwa i diagnostyki.
+
+## 3. Cele i podstawy prawne
+
+Dane są przetwarzane w następujących celach:
+
+- przyjęcie zamówienia, zawarcie i wykonanie umowy, obsługa płatności, dostawa książki lub e-booka i kontakt dotyczący realizacji — art. 6 ust. 1 lit. b RODO;
+- obsługa reklamacji, odstąpienia, zwrotu oraz innych obowiązków wynikających z przepisów konsumenckich — art. 6 ust. 1 lit. b i lit. c RODO;
+- wykonanie obowiązków podatkowych, rachunkowych i dokumentacyjnych — art. 6 ust. 1 lit. c RODO;
+- zapewnienie bezpieczeństwa sklepu, zapobieganie nadużyciom, prowadzenie logów technicznych, ustalanie, dochodzenie i obrona roszczeń oraz organizacja obsługi klienta — art. 6 ust. 1 lit. f RODO, czyli prawnie uzasadniony interes administratora;
+- wysyłanie newslettera i informacji o książkach — art. 6 ust. 1 lit. a RODO oraz zgoda wymagana przez przepisy dotyczące komunikacji elektronicznej;
+- przyjęcie i obsługa zgłoszenia na wydarzenie, kontakt z osobą zgłoszoną oraz organizacja udziału — art. 6 ust. 1 lit. a RODO; jeżeli charakter zgłoszenia może pośrednio ujawniać przekonania religijne lub światopoglądowe, podstawą przetwarzania jest także wyraźna zgoda z art. 9 ust. 2 lit. a RODO;
+- obsługa dobrowolnie rozpoczętej rozmowy przez Tawk.to — art. 6 ust. 1 lit. b lub lit. f RODO, zależnie od treści i celu rozmowy;
+- używanie technologii innych niż niezbędne do działania strony — na podstawie uprzedniej zgody użytkownika, jeżeli taka zgoda jest wymagana.
+
+Zgoda może zostać wycofana w dowolnym momencie. Wycofanie zgody nie wpływa na zgodność z prawem działań wykonanych przed jej wycofaniem.
+
+## 4. Czy podanie danych jest obowiązkowe
+
+Podanie danych oznaczonych w formularzu zakupu jako wymagane jest dobrowolne, ale konieczne do zawarcia i wykonania umowy. Bez tych danych nie będzie możliwe przyjęcie płatności, wysłanie książki albo dostarczenie e-booka.
+
+Podanie adresu e-mail do newslettera i zgoda marketingowa są całkowicie dobrowolne i nie są warunkiem zakupu.
+
+Podanie danych w formularzu zgłoszeniowym oraz wyrażenie opisanej przy nim zgody są dobrowolne, ale niezbędne do przyjęcia zgłoszenia tą drogą. Zakres wymaganych danych jest wskazany bezpośrednio w formularzu. Zgoda może zostać wycofana przez wiadomość na adres biuro@arka-pojednanie.pl.
+
+## 5. Odbiorcy danych
+
+Dane mogą być przekazywane wyłącznie w zakresie niezbędnym do wykonania określonego zadania:
+
+- PayPro S.A., operatorowi serwisu Przelewy24, oraz podmiotom uczestniczącym w wybranej metodzie płatności — w celu obsługi płatności, zwrotów i przeciwdziałania nadużyciom;
+- InPost — w celu wyboru punktu, utworzenia i obsługi przesyłki, udostępnienia etykiety oraz śledzenia dostawy;
+- OVHcloud i innym dostawcom hostingu, infrastruktury serwerowej, kopii zapasowych oraz poczty elektronicznej;
+- Google Ireland Limited — jeżeli użytkownik wyrazi zgodę na statystyki Google Analytics 4, w celu pomiaru korzystania ze strony;
+- Tawk.to — jeżeli użytkownik korzysta z widżetu czatu;
+- dostawcom obsługi technicznej sklepu, jeżeli dostęp do danych jest konieczny do wykonania zleconych prac i został odpowiednio zabezpieczony;
+- podmiotom świadczącym usługi księgowe, prawne lub audytowe;
+- organom publicznym, jeżeli obowiązek udostępnienia danych wynika z prawa.
+
+Sklep udostępnia Google Merchant Center kanał produktowy zawierający informacje o książkach, cenach i dostępności. Kanał ten nie zawiera danych klientów.
+
+## 6. Przekazywanie danych poza Europejski Obszar Gospodarczy
+
+Niektórzy opcjonalni dostawcy technologii, w szczególności Google i Tawk.to, działają globalnie. Jeżeli ich usługi zostaną włączone, dane mogą być przetwarzane poza Europejskim Obszarem Gospodarczym.
+
+Jeżeli dochodzi do takiego przekazania, odbywa się ono na podstawie mechanizmu dopuszczonego przez RODO, w szczególności decyzji Komisji Europejskiej stwierdzającej odpowiedni stopień ochrony, certyfikacji w ramach EU–US Data Privacy Framework albo standardowych klauzul umownych wraz z dodatkowymi zabezpieczeniami — zależnie od dostawcy i miejsca przetwarzania.
+
+Aktualne informacje o zasadach przetwarzania przez dostawców znajdują się w ich politykach prywatności:
+Przelewy24: https://www.przelewy24.pl/obowiazekinformacyjny
+InPost: https://inpost.pl/polityka-prywatnosci
+Tawk.to: https://www.tawk.to/privacy-policy/
+OVHcloud: https://www.ovhcloud.com/pl/personal-data-protection/
+Google: https://policies.google.com/privacy
+
+## 7. Okres przechowywania
+
+Dane zamówień, płatności, reklamacji i zwrotów są przechowywane przez okres wykonywania umowy, a następnie przez okres wymagany przez przepisy podatkowe i rachunkowe oraz do upływu terminów przedawnienia roszczeń.
+
+Dokumentacja księgowa jest przechowywana przez okres wymagany przez właściwe przepisy, co do zasady przez 5 lat liczonych zgodnie z przepisami podatkowymi.
+
+Dane przetwarzane na podstawie zgody na newsletter są przechowywane do jej wycofania. Informacja pozwalająca wykazać udzielenie i wycofanie zgody może być przechowywana do upływu terminu dochodzenia lub obrony roszczeń.
+
+Korespondencja jest przechowywana przez czas potrzebny do obsługi sprawy, a następnie — jeżeli może stanowić dowód — do upływu właściwego terminu przedawnienia.
+
+Dane ze zgłoszeń na wydarzenia są przechowywane przez czas organizacji i obsługi wydarzenia, a następnie przez okres potrzebny do rozliczenia spraw organizacyjnych lub obrony przed roszczeniami. Jeżeli przetwarzanie opiera się na zgodzie, dane są usuwane wcześniej po jej wycofaniu, chyba że istnieje inna podstawa prawna do dalszego przechowywania. Informacja o udzieleniu i wycofaniu zgody może być przechowywana w zakresie potrzebnym do wykazania zgodności z prawem.
+
+Logi techniczne i dane bezpieczeństwa są przechowywane tylko tak długo, jak jest to potrzebne do diagnostyki, zapewnienia bezpieczeństwa albo wyjaśnienia incydentu. Dane mogą być przechowywane dłużej, jeżeli wymaga tego prawo lub są potrzebne do ustalenia, dochodzenia albo obrony roszczeń.
+
+## 8. Prawa osoby, której dane dotyczą
+
+Na zasadach określonych w RODO przysługuje prawo do:
+
+- uzyskania informacji i dostępu do danych oraz otrzymania ich kopii;
+- sprostowania nieprawidłowych danych i uzupełnienia danych niekompletnych;
+- usunięcia danych, jeżeli zachodzą przesłanki prawne;
+- ograniczenia przetwarzania;
+- przeniesienia danych przetwarzanych na podstawie zgody lub umowy w sposób zautomatyzowany;
+- wniesienia sprzeciwu wobec przetwarzania opartego na prawnie uzasadnionym interesie;
+- wycofania zgody w dowolnym momencie;
+- wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych, ul. Stanisława Moniuszki 1A, 00-014 Warszawa, https://uodo.gov.pl.
+
+Żądanie można przesłać na biuro@arka-pojednanie.pl. Przed realizacją żądania administrator może poprosić o informacje pozwalające potwierdzić tożsamość wnioskodawcy.
+
+Prawo do usunięcia danych nie jest bezwzględne. Dane mogą pozostać przechowywane, jeżeli jest to konieczne do wykonania obowiązku prawnego albo ustalenia, dochodzenia lub obrony roszczeń.
+
+## 9. Zautomatyzowane decyzje i profilowanie
+
+Sklep nie podejmuje wobec klientów decyzji opartych wyłącznie na zautomatyzowanym przetwarzaniu, które wywoływałyby skutki prawne lub w podobny sposób istotnie na nich wpływały. Sklep nie tworzy profili marketingowych klientów.
+
+Operator płatności może stosować własne automatyczne mechanizmy przeciwdziałania oszustwom. Szczegóły opisuje obowiązek informacyjny Przelewy24.
+
+## 10. Pliki cookies i podobne technologie
+
+Sklep może używać plików cookies i pamięci przeglądarki niezbędnych do:
+
+- utrzymania bezpiecznej sesji;
+- ochrony formularzy przed nadużyciami;
+- zapamiętania stanu procesu zakupu;
+- prawidłowego działania panelu administracyjnego;
+- zachowania ustawień prywatności użytkownika.
+
+Niezbędne pliki cookies są używane, ponieważ bez nich strona lub zamówienie nie działałyby prawidłowo.
+
+Po przejściu do płatności przeglądarka łączy się z serwisem Przelewy24, który może stosować własne technologie bezpieczeństwa i zapobiegania oszustwom. Po otwarciu mapy InPost przeglądarka łączy się z usługą Geowidget InPost. Jeżeli obsługa czatu Tawk.to jest włączona, po wejściu na stronę przeglądarka łączy się z serwerami Tawk.to, aby wskazać aktywną wizytę i umożliwić rozmowę. Dostawca może zapisać własne pliki cookies lub podobne identyfikatory.
+
+Za dobrowolną zgodą użytkownika sklep korzysta z Google Analytics 4 w celu tworzenia zbiorczych statystyk odwiedzin, poznania źródeł ruchu i sprawdzenia, które treści są najczęściej oglądane. Google Analytics może przetwarzać dane techniczne dotyczące urządzenia i przeglądarki, przybliżoną lokalizację, adres odwiedzanej strony, źródło wejścia oraz identyfikator zapisany w pliku cookie. Sklep nie włącza personalizacji reklam ani Google Signals.
+
+Przed wyrażeniem zgody skrypt Google Analytics nie jest pobierany, a dane statystyczne nie są wysyłane do Google. Zgodę można w każdej chwili wycofać lub zmienić przez przycisk „Ustawienia cookies” w stopce strony. Wycofanie zgody nie wpływa na zgodność z prawem pomiaru wykonanego przed jej wycofaniem.
+
+Integracja z Google Merchant Center polega na udostępnieniu katalogu produktów i nie służy do przekazywania danych zamówień ani danych klientów. Sklep nie korzysta z reklamowych pikseli śledzących.
+
+Użytkownik może usuwać i blokować cookies w ustawieniach przeglądarki. Zablokowanie cookies niezbędnych może uniemożliwić prawidłowe złożenie zamówienia, płatność albo logowanie do panelu.
+
+## 11. Bezpieczeństwo
+
+Sklep korzysta z szyfrowanego połączenia HTTPS, kontroli dostępu, ochrony sesji i formularzy, kopii zapasowych oraz rozwiązań ograniczających dostęp do danych do osób i podmiotów, które potrzebują go do wykonania swoich zadań.
+
+Dane płatnicze i kod BLIK są wprowadzane bezpośrednio w serwisie Przelewy24 i nie są przechowywane w bazie sklepu.
+
+## 12. Linki do innych stron
+
+Strona może zawierać linki do zewnętrznych serwisów. Po przejściu do takiego serwisu zasady przetwarzania danych określa jego administrator. Warto zapoznać się z polityką prywatności odwiedzanego serwisu.
+
+## 13. Zmiany polityki
+
+Polityka może zostać zmieniona, jeżeli zmienią się funkcje sklepu, dostawcy, sposób przetwarzania danych albo przepisy. Aktualna wersja jest zawsze publikowana pod adresem https://arka-pojednanie.pl/polityka-prywatnosci wraz z datą obowiązywania.

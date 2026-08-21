@@ -1,0 +1,19 @@
+.env
+
+# Lokalne bazy i artefakty testów
+/storage/database.sqlite
+/storage/test-*.sqlite
+/storage/sess_*
+
+# Dane generowane w czasie działania
+/storage/cache/
+/storage/labels/
+/storage/logs/
+/storage/readiness/
+/storage/backups/
+/storage/exports/
+/storage/media-trash/
+
+# Pliki tymczasowe narzędzi
+*.tmp
+*.log

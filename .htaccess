@@ -1,0 +1,21 @@
+Options -Indexes
+RewriteEngine On
+RewriteRule ^(?:app|config|database|docs|resources|scripts|seeds|storage|vendor)(?:/|$) - [F,L,NC]
+
+<FilesMatch "(^\.|\.env|\.sql(?:\.gz)?$|\.sqlite$|composer\.(?:json|lock)$)">
+  Require all denied
+</FilesMatch>
+
+# OVH udostępnia jeden katalog główny multisite. Panel pozostaje w /admin,
+# a sklep i jego pliki publiczne są obsługiwane z katalogu /public.
+RewriteCond %{THE_REQUEST} "\s/+public(?:[/?\s]|$)" [NC]
+RewriteRule ^public(?:/.*)?$ - [F,L,NC]
+
+RewriteRule ^public(?:/|$) - [L,NC]
+RewriteRule ^admin(?:/|$) - [L,NC]
+
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -d
+RewriteRule ^(.+)$ public/$1 [L]
+
+RewriteRule ^ public/index.php [QSA,L]
