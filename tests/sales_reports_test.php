@@ -238,8 +238,9 @@ try {
         'reportSettings'=>$state,
         'user'=>['email'=>'admin@example.test'],
     ]);
-    check(str_contains($salesHtml, 'Raport dla księgowości') && str_contains($salesHtml, 'action="/admin/sales/reports/generate"'), 'sales panel renders with the configured admin base path');
+    check(str_contains($salesHtml, 'Najważniejsze kwoty sprzedaży') && str_contains($salesHtml, 'action="/admin/sales/reports/generate"'), 'sales panel renders with the configured admin base path');
     check(str_contains($salesHtml, 'href="/admin/sales/export-xlsx?year=2025&amp;month=8"'), 'XLSX export URL includes the admin base path');
+    check(strpos($salesHtml, 'sales-report-panel') > strpos($salesHtml, 'sales-items-panel'), 'report generation is placed below the sales details');
 
     $settingsHtml = View::capture('admin/settings/index', [
         'settings'=>(new SettingsRepository())->allKeyed(),
@@ -249,6 +250,7 @@ try {
     ]);
     check(str_contains($settingsHtml, 'name="sales_vat_rate"') && str_contains($settingsHtml, 'value="5.00"'), 'settings panel shows editable 5% VAT rate');
     check(str_contains($settingsHtml, 'name="sales_report_email"') && str_contains($settingsHtml, 'name="sales_report_day"'), 'settings panel renders cyclical email and day fields');
+    check(str_contains($settingsHtml, 'brand-upload-preview--logo'), 'settings panel uses the contained logo preview');
 
     (new SalesReportRepository())->syncAllEmailStatuses();
     echo json_encode([

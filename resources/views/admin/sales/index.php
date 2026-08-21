@@ -14,67 +14,97 @@ $closedPeriod = new \DateTimeImmutable($period['end']) <= new \DateTimeImmutable
 <div class="page-heading page-heading--compact">
   <div>
     <p class="kicker">SPRZEDAŻ</p>
-    <h1>Raport dla księgowości</h1>
-    <p class="muted">Jedno zestawienie netto, VAT i brutto dla wybranego miesiąca. Bez danych klientów.</p>
-  </div>
-  <div class="page-actions">
-    <a class="btn secondary" href="/sales/export?<?= htmlspecialchars($query) ?>">CSV</a>
-    <a class="btn secondary" href="/sales/export-xlsx?<?= htmlspecialchars($query) ?>">XLSX</a>
+    <h1>Sprzedaż</h1>
+    <p class="muted">Najważniejsze wyniki miesiąca. Szczegóły i raport dla księgowej znajdziesz niżej.</p>
   </div>
 </div>
 
-<section class="panel-section">
-  <form method="get" action="/sales" class="settings-grid settings-grid--three">
+<section class="panel-section sales-period-panel">
+  <form method="get" action="/sales" class="sales-period-form">
     <label class="field">Miesiąc<select name="month">
       <?php foreach ([1=>'styczeń',2=>'luty',3=>'marzec',4=>'kwiecień',5=>'maj',6=>'czerwiec',7=>'lipiec',8=>'sierpień',9=>'wrzesień',10=>'październik',11=>'listopad',12=>'grudzień'] as $number=>$name): ?>
         <option value="<?= $number ?>" <?= $month === $number ? 'selected' : '' ?>><?= htmlspecialchars(ucfirst($name)) ?></option>
       <?php endforeach; ?>
     </select></label>
     <label class="field">Rok<input name="year" type="number" min="2020" max="2100" value="<?= $year ?>"></label>
-    <button class="btn" type="submit">Pokaż raport</button>
+    <button class="btn" type="submit">Pokaż miesiąc</button>
+    <div class="sales-period-current">
+      <span>Wybrany okres</span>
+      <strong><?= htmlspecialchars(ucfirst((string)$period['label'])) ?></strong>
+      <small><?= htmlspecialchars($period['start_date']) ?> – <?= htmlspecialchars($period['end_date']) ?></small>
+    </div>
   </form>
 </section>
 
-<div class="ops-summary">
-  <span><strong><?= (int)$summary['paid_orders'] ?></strong> opłaconych zamówień</span>
-  <span><strong><?= (int)$summary['units'] ?></strong> sprzedanych książek</span>
-  <span><strong><?= $ui::money($summary['total_gross']) ?></strong> sprzedaży brutto</span>
-  <span><strong><?= $ui::money($summary['final_gross']) ?></strong> po zwrotach</span>
-</div>
-
-<section class="panel-section">
-  <div class="section-heading"><div><p class="section-label">PODSUMOWANIE</p><h2><?= htmlspecialchars(ucfirst((string)$period['label'])) ?></h2></div><span class="muted"><?= htmlspecialchars($period['start_date']) ?> – <?= htmlspecialchars($period['end_date']) ?></span></div>
-  <div class="stats-grid">
-    <?php foreach ([
-      'Produkty netto po rabatach'=>$summary['sales_net'],
-      'VAT produktów'=>$summary['sales_vat'],
-      'Produkty brutto po rabatach'=>$summary['sales_gross'],
-      'Rabaty brutto'=>$summary['discount_gross'],
-      'Wysyłka netto'=>$summary['shipping_net'],
-      'VAT wysyłki'=>$summary['shipping_vat'],
-      'Wysyłka brutto'=>$summary['shipping_gross'],
-      'Zwroty netto'=>$summary['refund_net'],
-      'Zwroty VAT'=>$summary['refund_vat'],
-      'Zwroty brutto'=>$summary['refund_gross'],
-      'Sprzedaż końcowa netto'=>$summary['final_net'],
-      'VAT końcowy'=>$summary['final_vat'],
-      'Sprzedaż końcowa brutto'=>$summary['final_gross'],
-    ] as $label=>$value): ?>
-      <article class="stat-card"><span><?= htmlspecialchars($label) ?></span><strong><?= $ui::money($value) ?></strong></article>
-    <?php endforeach; ?>
-  </div>
+<section class="sales-overview" aria-label="Najważniejsze kwoty sprzedaży">
+  <article class="sales-kpi sales-kpi--gross">
+    <span class="sales-kpi__label">Sprzedaż brutto</span>
+    <strong><?= $ui::money($summary['total_gross']) ?></strong>
+    <small>Łącznie z dostawą, przed zwrotami</small>
+  </article>
+  <article class="sales-kpi sales-kpi--final">
+    <span class="sales-kpi__label">Sprzedaż po zwrotach</span>
+    <strong><?= $ui::money($summary['final_gross']) ?></strong>
+    <small>Końcowa kwota brutto za miesiąc</small>
+  </article>
+  <article class="sales-kpi sales-kpi--net">
+    <span class="sales-kpi__label">Sprzedaż netto</span>
+    <strong><?= $ui::money($summary['final_net']) ?></strong>
+    <small>Kwota końcowa bez VAT</small>
+  </article>
+  <article class="sales-kpi sales-kpi--vat">
+    <span class="sales-kpi__label">VAT</span>
+    <strong><?= $ui::money($summary['final_vat']) ?></strong>
+    <small>VAT końcowy za wybrany miesiąc</small>
+  </article>
 </section>
 
-<section class="panel-section">
+<div class="sales-counts" aria-label="Liczba zamówień i książek">
+  <span><strong><?= (int)$summary['paid_orders'] ?></strong><small>opłaconych zamówień</small></span>
+  <span><strong><?= (int)$summary['units'] ?></strong><small>sprzedanych książek</small></span>
+  <span><strong><?= (int)$summary['returned_units'] ?></strong><small>zwróconych książek</small></span>
+</div>
+
+<section class="panel-section sales-breakdown-panel">
+  <details class="sales-breakdown">
+    <summary>
+      <span><span class="section-label">ROZLICZENIE</span><strong>Szczegóły VAT, dostawy, rabatów i zwrotów</strong></span>
+      <span class="sales-breakdown__toggle" aria-hidden="true"></span>
+    </summary>
+    <div class="sales-breakdown__grid">
+      <article>
+        <h3>Książki po rabatach</h3>
+        <dl>
+          <div><dt>Netto</dt><dd><?= $ui::money($summary['sales_net']) ?></dd></div>
+          <div><dt>VAT</dt><dd><?= $ui::money($summary['sales_vat']) ?></dd></div>
+          <div><dt>Brutto</dt><dd><?= $ui::money($summary['sales_gross']) ?></dd></div>
+        </dl>
+      </article>
+      <article>
+        <h3>Dostawa i rabaty</h3>
+        <dl>
+          <div><dt>Dostawa netto</dt><dd><?= $ui::money($summary['shipping_net']) ?></dd></div>
+          <div><dt>VAT dostawy</dt><dd><?= $ui::money($summary['shipping_vat']) ?></dd></div>
+          <div><dt>Dostawa brutto</dt><dd><?= $ui::money($summary['shipping_gross']) ?></dd></div>
+          <div><dt>Rabaty brutto</dt><dd><?= $ui::money($summary['discount_gross']) ?></dd></div>
+        </dl>
+      </article>
+      <article>
+        <h3>Zwroty</h3>
+        <dl>
+          <div><dt>Netto</dt><dd><?= $ui::money($summary['refund_net']) ?></dd></div>
+          <div><dt>VAT</dt><dd><?= $ui::money($summary['refund_vat']) ?></dd></div>
+          <div><dt>Brutto</dt><dd><?= $ui::money($summary['refund_gross']) ?></dd></div>
+        </dl>
+      </article>
+    </div>
+  </details>
+</section>
+
+<section class="panel-section sales-items-panel">
   <div class="section-heading">
     <div><p class="section-label">POZYCJE</p><h2>Sprzedaż i zwroty</h2></div>
-    <form method="post" action="/sales/reports/generate" data-ajax-refresh>
-      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Book100\Core\Csrf::token()) ?>">
-      <input type="hidden" name="year" value="<?= $year ?>">
-      <input type="hidden" name="month" value="<?= $month ?>">
-      <input type="hidden" name="recipient_email" value="<?= htmlspecialchars($reportEmail) ?>">
-      <button class="btn secondary" type="submit" <?= $closedPeriod ? '' : 'disabled' ?>><?= $closedPeriod ? 'Zapisz raport w historii' : 'Raport po zakończeniu miesiąca' ?></button>
-    </form>
+    <span class="muted">Tylko opłacone zamówienia i wykonane zwroty</span>
   </div>
   <div class="table-shell">
     <table class="admin-table sales-table">
@@ -102,8 +132,31 @@ $closedPeriod = new \DateTimeImmutable($period['end']) <= new \DateTimeImmutable
   </div>
 </section>
 
-<section class="panel-section">
-  <div class="section-heading"><div><p class="section-label">ARCHIWUM</p><h2>Wygenerowane raporty</h2></div><a class="text-button" href="/settings#sprzedaz">Ustaw cykliczną wysyłkę →</a></div>
+<section class="panel-section sales-report-panel">
+  <div class="sales-report-cta">
+    <div>
+      <p class="section-label">RAPORT DLA KSIĘGOWEJ</p>
+      <h2>Pobierz lub zapisz zestawienie</h2>
+      <p class="muted">Raport nie zawiera danych klientów. CSV i XLSX obejmują wybrany wyżej miesiąc.</p>
+    </div>
+    <div class="sales-report-actions">
+      <a class="btn secondary" href="/sales/export?<?= htmlspecialchars($query) ?>">Pobierz CSV</a>
+      <a class="btn" href="/sales/export-xlsx?<?= htmlspecialchars($query) ?>">Pobierz XLSX</a>
+      <form method="post" action="/sales/reports/generate" data-ajax-refresh>
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Book100\Core\Csrf::token()) ?>">
+        <input type="hidden" name="year" value="<?= $year ?>">
+        <input type="hidden" name="month" value="<?= $month ?>">
+        <input type="hidden" name="recipient_email" value="<?= htmlspecialchars($reportEmail) ?>">
+        <button class="btn secondary" type="submit" <?= $closedPeriod ? '' : 'disabled' ?>><?= $closedPeriod ? 'Zapisz w historii' : 'Zapis po zakończeniu miesiąca' ?></button>
+      </form>
+    </div>
+  </div>
+  <?php if (!$closedPeriod): ?><p class="sales-report-note">Bieżący miesiąc możesz pobierać na bieżąco. Zapis do historii będzie dostępny po jego zakończeniu.</p><?php endif; ?>
+
+  <div class="sales-report-archive-heading">
+    <div><p class="section-label">ARCHIWUM</p><h3>Wygenerowane raporty</h3></div>
+    <a class="text-button" href="/settings#sprzedaz">Ustaw cykliczną wysyłkę →</a>
+  </div>
   <div class="table-shell">
     <table class="admin-table">
       <thead><tr><th>Okres</th><th>Wygenerowano</th><th>Netto</th><th>VAT</th><th>Brutto</th><th>Wysyłka</th><th>Odbiorca</th><th>Akcje</th></tr></thead>
