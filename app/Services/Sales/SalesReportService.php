@@ -48,7 +48,62 @@ final class SalesReportService
 
     public function dataset(int $year, int $month): array
     {
-        $period = $this->selectedPeriod($year, $month);
+        return $this->datasetForRange('month', $year, $month);
+    }
+
+    public function datasetForRange(mixed $range, mixed $year, mixed $month = null): array
+    {
+        return $this->datasetForPeriod($this->selectedRange($range, $year, $month));
+    }
+
+    public function selectedRange(mixed $range, mixed $year, mixed $month = null): array
+    {
+        $range = strtolower(trim((string)$range));
+        if ($range === '' || $range === 'month') {
+            $period = $this->selectedPeriod($year, $month);
+            $period['range'] = 'month';
+            $period['slug'] = sprintf('%04d-%02d', (int)$period['year'], (int)$period['month']);
+            return $period;
+        }
+        if ($range !== 'year') {
+            throw new RuntimeException('Wybierz raport miesięczny albo roczny.');
+        }
+
+        $now = new DateTimeImmutable('now');
+        $year = filter_var($year, FILTER_VALIDATE_INT) ?: (int)$now->format('Y');
+        if ($year < 2020 || $year > (int)$now->format('Y')) {
+            throw new RuntimeException('Nieprawidłowy rok raportu.');
+        }
+        $start = new DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year));
+        $calendarEnd = $start->modify('+1 year');
+        $currentYear = $year === (int)$now->format('Y');
+        $end = $currentYear ? new DateTimeImmutable('tomorrow 00:00:00') : $calendarEnd;
+        return [
+            'year'=>$year,
+            'month'=>1,
+            'start'=>$start->format('Y-m-d H:i:s'),
+            'end'=>$end->format('Y-m-d H:i:s'),
+            'start_date'=>$start->format('Y-m-d'),
+            'end_date'=>$currentYear ? $now->format('Y-m-d') : $calendarEnd->modify('-1 day')->format('Y-m-d'),
+            'label'=>$currentYear ? 'rok ' . $year . ' — do dziś' : 'rok ' . $year,
+            'range'=>'year',
+            'slug'=>(string)$year,
+        ];
+    }
+
+    public function exportFilename(array $dataset, string $extension): string
+    {
+        $extension = strtolower(trim($extension));
+        if (!in_array($extension, ['csv', 'xlsx'], true)) {
+            throw new RuntimeException('Nieprawidłowy format raportu.');
+        }
+        $slug = preg_replace('/[^0-9a-z-]/i', '', (string)($dataset['period']['slug'] ?? ''));
+        if ($slug === '') throw new RuntimeException('Nieprawidłowy okres raportu.');
+        return 'sprzedaz-' . $slug . '.' . $extension;
+    }
+
+    private function datasetForPeriod(array $period): array
+    {
         $orders = $this->reports->ordersForPeriod($period['start'], $period['end']);
         $summary = [
             'paid_orders'=>0, 'units'=>0, 'returned_units'=>0,

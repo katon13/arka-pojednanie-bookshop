@@ -6,9 +6,9 @@ $summary = $dataset['summary'];
 $rows = $dataset['rows'];
 $year = (int)$period['year'];
 $month = (int)$period['month'];
-$query = 'year=' . $year . '&month=' . $month;
 $reportEmail = trim((string)($reportSettings['sales_report_email'] ?? ''));
-$closedPeriod = new \DateTimeImmutable($period['end']) <= new \DateTimeImmutable('first day of this month 00:00:00');
+$currentYear = (int)date('Y');
+$reportYear = min($year, $currentYear);
 ?>
 
 <div class="page-heading page-heading--compact">
@@ -133,58 +133,74 @@ $closedPeriod = new \DateTimeImmutable($period['end']) <= new \DateTimeImmutable
 </section>
 
 <section class="panel-section sales-report-panel">
-  <div class="sales-report-cta">
+  <div class="sales-report-heading">
     <div>
       <p class="section-label">RAPORT DLA KSIĘGOWEJ</p>
-      <h2>Pobierz lub zapisz zestawienie</h2>
-      <p class="muted">Raport nie zawiera danych klientów. CSV i XLSX obejmują wybrany wyżej miesiąc.</p>
-    </div>
-    <div class="sales-report-actions">
-      <a class="btn secondary" href="/sales/export?<?= htmlspecialchars($query) ?>">Pobierz CSV</a>
-      <a class="btn" href="/sales/export-xlsx?<?= htmlspecialchars($query) ?>">Pobierz XLSX</a>
-      <form method="post" action="/sales/reports/generate" data-ajax-refresh>
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Book100\Core\Csrf::token()) ?>">
-        <input type="hidden" name="year" value="<?= $year ?>">
-        <input type="hidden" name="month" value="<?= $month ?>">
-        <input type="hidden" name="recipient_email" value="<?= htmlspecialchars($reportEmail) ?>">
-        <button class="btn secondary" type="submit" <?= $closedPeriod ? '' : 'disabled' ?>><?= $closedPeriod ? 'Zapisz w historii' : 'Zapis po zakończeniu miesiąca' ?></button>
-      </form>
+      <h2>Wygeneruj raport</h2>
+      <p class="muted">Wybierz raport miesięczny albo roczny. Gotowy plik Excel zostanie pobrany na komputer.</p>
     </div>
   </div>
-  <?php if (!$closedPeriod): ?><p class="sales-report-note">Bieżący miesiąc możesz pobierać na bieżąco. Zapis do historii będzie dostępny po jego zakończeniu.</p><?php endif; ?>
 
-  <div class="sales-report-archive-heading">
-    <div><p class="section-label">ARCHIWUM</p><h3>Wygenerowane raporty</h3></div>
-    <a class="text-button" href="/settings#sprzedaz">Ustaw cykliczną wysyłkę →</a>
+  <div class="sales-report-choices">
+    <article class="sales-report-choice">
+      <div class="sales-report-choice__title"><span>1</span><div><h3>Raport miesięczny</h3><p>Sprzedaż z jednego wybranego miesiąca.</p></div></div>
+      <form method="get" action="/sales/export-xlsx" class="sales-report-generator-form">
+        <input type="hidden" name="range" value="month">
+        <label class="field">Miesiąc<select name="month">
+          <?php foreach ([1=>'styczeń',2=>'luty',3=>'marzec',4=>'kwiecień',5=>'maj',6=>'czerwiec',7=>'lipiec',8=>'sierpień',9=>'wrzesień',10=>'październik',11=>'listopad',12=>'grudzień'] as $number=>$name): ?>
+            <option value="<?= $number ?>" <?= $month === $number ? 'selected' : '' ?>><?= htmlspecialchars(ucfirst($name)) ?></option>
+          <?php endforeach; ?>
+        </select></label>
+        <label class="field">Rok<input name="year" type="number" min="2020" max="<?= $currentYear ?>" value="<?= $reportYear ?>" required></label>
+        <button class="btn" type="submit">Wygeneruj raport miesięczny</button>
+      </form>
+    </article>
+
+    <article class="sales-report-choice sales-report-choice--year">
+      <div class="sales-report-choice__title"><span>2</span><div><h3>Raport roczny</h3><p>Sprzedaż z całego wybranego roku.</p></div></div>
+      <form method="get" action="/sales/export-xlsx" class="sales-report-generator-form sales-report-generator-form--year">
+        <input type="hidden" name="range" value="year">
+        <label class="field">Rok<input name="year" type="number" min="2020" max="<?= $currentYear ?>" value="<?= $reportYear ?>" required></label>
+        <button class="btn" type="submit">Wygeneruj raport roczny</button>
+      </form>
+      <?php if ($reportYear === $currentYear): ?><small class="sales-report-current-note">Bieżący rok obejmuje dane do dzisiaj.</small><?php endif; ?>
+    </article>
   </div>
-  <div class="table-shell">
-    <table class="admin-table">
-      <thead><tr><th>Okres</th><th>Wygenerowano</th><th>Netto</th><th>VAT</th><th>Brutto</th><th>Wysyłka</th><th>Odbiorca</th><th>Akcje</th></tr></thead>
-      <tbody>
-      <?php foreach ($reports as $report): ?>
-        <?php $sendStatus = (string)($report['send_status'] ?? 'not_sent'); ?>
-        <tr>
-          <td><strong><?= sprintf('%04d-%02d', (int)$report['period_year'], (int)$report['period_month']) ?></strong><small class="table-subline"><?= htmlspecialchars((string)$report['period_start']) ?> – <?= htmlspecialchars((string)$report['period_end']) ?></small></td>
-          <td><?= $ui::date($report['generated_at'] ?? $report['created_at'] ?? null) ?></td>
-          <td><?= $ui::money($report['final_net'] ?? 0) ?></td>
-          <td><?= $ui::money($report['final_vat'] ?? 0) ?></td>
-          <td><strong><?= $ui::money($report['final_gross'] ?? 0) ?></strong></td>
-          <td><span class="pill pill--<?= $sendStatus === 'sent' ? 'success' : ($sendStatus === 'failed' ? 'danger' : 'neutral') ?>"><?= htmlspecialchars(['sent'=>'wysłany','failed'=>'błąd','queued'=>'w kolejce','not_sent'=>'niewysłany'][$sendStatus] ?? $sendStatus) ?></span><?php if (!empty($report['last_error'])): ?><small class="table-subline"><?= htmlspecialchars($report['last_error']) ?></small><?php endif; ?></td>
-          <td><?= htmlspecialchars((string)($report['recipient_email'] ?? '—')) ?></td>
-          <td>
-            <?php if (($report['status'] ?? '') === 'generated'): ?><a class="btn secondary" href="/sales/reports/<?= (int)$report['id'] ?>/download">Pobierz</a><?php endif; ?>
-            <form method="post" action="/sales/reports/<?= (int)$report['id'] ?>/resend" data-ajax-refresh style="display:inline">
-              <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Book100\Core\Csrf::token()) ?>">
-              <input type="hidden" name="recipient_email" value="<?= htmlspecialchars((string)(($report['recipient_email'] ?? '') ?: $reportEmail)) ?>">
-              <button class="btn secondary" type="submit" <?= (($report['status'] ?? '') !== 'generated' || (($report['recipient_email'] ?? '') ?: $reportEmail) === '') ? 'disabled' : '' ?>>Wyślij ponownie</button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      <?php if (!$reports): ?><tr><td colspan="8" class="empty-state">Nie wygenerowano jeszcze żadnego raportu.</td></tr><?php endif; ?>
-      </tbody>
-    </table>
-  </div>
+
+  <div class="sales-report-footer-link"><a class="text-button" href="/settings#sprzedaz">Ustaw automatyczną wysyłkę miesięczną →</a></div>
+
+  <?php if ($reports): ?>
+  <details class="sales-report-history">
+    <summary>Historia raportów wysyłanych automatycznie <span><?= count($reports) ?></span></summary>
+    <div class="table-shell">
+      <table class="admin-table">
+        <thead><tr><th>Okres</th><th>Wygenerowano</th><th>Netto</th><th>VAT</th><th>Brutto</th><th>Wysyłka</th><th>Odbiorca</th><th>Akcje</th></tr></thead>
+        <tbody>
+        <?php foreach ($reports as $report): ?>
+          <?php $sendStatus = (string)($report['send_status'] ?? 'not_sent'); ?>
+          <tr>
+            <td><strong><?= sprintf('%04d-%02d', (int)$report['period_year'], (int)$report['period_month']) ?></strong><small class="table-subline"><?= htmlspecialchars((string)$report['period_start']) ?> – <?= htmlspecialchars((string)$report['period_end']) ?></small></td>
+            <td><?= $ui::date($report['generated_at'] ?? $report['created_at'] ?? null) ?></td>
+            <td><?= $ui::money($report['final_net'] ?? 0) ?></td>
+            <td><?= $ui::money($report['final_vat'] ?? 0) ?></td>
+            <td><strong><?= $ui::money($report['final_gross'] ?? 0) ?></strong></td>
+            <td><span class="pill pill--<?= $sendStatus === 'sent' ? 'success' : ($sendStatus === 'failed' ? 'danger' : 'neutral') ?>"><?= htmlspecialchars(['sent'=>'wysłany','failed'=>'błąd','queued'=>'w kolejce','not_sent'=>'niewysłany'][$sendStatus] ?? $sendStatus) ?></span><?php if (!empty($report['last_error'])): ?><small class="table-subline"><?= htmlspecialchars($report['last_error']) ?></small><?php endif; ?></td>
+            <td><?= htmlspecialchars((string)($report['recipient_email'] ?? '—')) ?></td>
+            <td>
+              <?php if (($report['status'] ?? '') === 'generated'): ?><a class="btn secondary" href="/sales/reports/<?= (int)$report['id'] ?>/download">Pobierz</a><?php endif; ?>
+              <form method="post" action="/sales/reports/<?= (int)$report['id'] ?>/resend" data-ajax-refresh style="display:inline">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Book100\Core\Csrf::token()) ?>">
+                <input type="hidden" name="recipient_email" value="<?= htmlspecialchars((string)(($report['recipient_email'] ?? '') ?: $reportEmail)) ?>">
+                <button class="btn secondary" type="submit" <?= (($report['status'] ?? '') !== 'generated' || (($report['recipient_email'] ?? '') ?: $reportEmail) === '') ? 'disabled' : '' ?>>Wyślij ponownie</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <?php endif; ?>
 </section>
 
 <?php include __DIR__ . '/../layout_bottom.php'; ?>

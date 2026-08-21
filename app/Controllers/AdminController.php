@@ -348,10 +348,9 @@ final class AdminController
     {
         AdminAuth::requireLogin();
         $service = new SalesReportService();
-        $period = $service->selectedPeriod($_GET['year'] ?? null, $_GET['month'] ?? null);
-        $dataset = $service->dataset((int)$period['year'], (int)$period['month']);
+        $dataset = $service->datasetForRange($_GET['range'] ?? 'month', $_GET['year'] ?? null, $_GET['month'] ?? null);
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="sprzedaz-' . sprintf('%04d-%02d', $period['year'], $period['month']) . '.csv"');
+        header('Content-Disposition: attachment; filename="' . $service->exportFilename($dataset, 'csv') . '"');
         echo $service->csv($dataset);
     }
 
@@ -359,8 +358,7 @@ final class AdminController
     {
         AdminAuth::requireLogin();
         $service = new SalesReportService();
-        $period = $service->selectedPeriod($_GET['year'] ?? null, $_GET['month'] ?? null);
-        $dataset = $service->dataset((int)$period['year'], (int)$period['month']);
+        $dataset = $service->datasetForRange($_GET['range'] ?? 'month', $_GET['year'] ?? null, $_GET['month'] ?? null);
         $directory = dirname(__DIR__, 2) . '/storage/reports';
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
             throw new \RuntimeException('Nie można utworzyć katalogu raportów.');
@@ -368,7 +366,7 @@ final class AdminController
         $path = $directory . '/.export-' . bin2hex(random_bytes(8)) . '.xlsx';
         try {
             $service->writeXlsx($dataset, $path);
-            $filename = 'sprzedaz-' . sprintf('%04d-%02d', $period['year'], $period['month']) . '.xlsx';
+            $filename = $service->exportFilename($dataset, 'xlsx');
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Content-Length: ' . filesize($path));

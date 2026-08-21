@@ -173,6 +173,21 @@ try {
     check($summary['refund_net'] === '20.00' && $summary['refund_vat'] === '1.00' && $summary['refund_gross'] === '21.00', 'refund is posted in refund month');
     check($summary['final_net'] === '31.43' && $summary['final_vat'] === '1.57' && $summary['final_gross'] === '33.00', 'final totals agree');
     check(count($dataset['rows']) === 2 && $dataset['rows'][0]['type'] === 'SPRZEDAŻ' && $dataset['rows'][1]['type'] === 'ZWROT', 'sale and refund rows are present');
+    check($service->exportFilename($dataset, 'xlsx') === 'sprzedaz-2025-08.xlsx', 'monthly report has a clear filename');
+
+    $yearDataset = $service->datasetForRange('year', 2025);
+    check($yearDataset['period']['start_date'] === '2025-01-01' && $yearDataset['period']['end_date'] === '2025-12-31', 'yearly report covers the full selected year');
+    check($yearDataset['summary']['paid_orders'] === 2 && $yearDataset['summary']['units'] === 3 && $yearDataset['summary']['returned_units'] === 1, 'yearly report combines all monthly events');
+    check($yearDataset['summary']['final_net'] === '51.43' && $yearDataset['summary']['final_vat'] === '2.57' && $yearDataset['summary']['final_gross'] === '54.00', 'yearly report totals agree');
+    check(count($yearDataset['rows']) === 3 && $service->exportFilename($yearDataset, 'xlsx') === 'sprzedaz-2025.xlsx', 'yearly report rows and filename are correct');
+
+    $invalidRange = false;
+    try {
+        $service->datasetForRange('all', 2025);
+    } catch (RuntimeException) {
+        $invalidRange = true;
+    }
+    check($invalidRange, 'only monthly and yearly report ranges are accepted');
 
     $csv = $service->csv($dataset);
     check(str_contains($csv, 'ARKA-2025-000001') && str_contains($csv, 'ARKA-2025-000002'), 'CSV contains report rows');
@@ -183,6 +198,10 @@ try {
     $createdFiles[] = $xlsxPath;
     check(is_file($xlsxPath) && filesize($xlsxPath) > 3000, 'XLSX is generated');
     check(substr((string)file_get_contents($xlsxPath), 0, 2) === 'PK', 'XLSX is a ZIP package');
+    $yearXlsxPath = $root . '/storage/reports/test-sales-report-year.xlsx';
+    $service->writeXlsx($yearDataset, $yearXlsxPath);
+    $createdFiles[] = $yearXlsxPath;
+    check(is_file($yearXlsxPath) && filesize($yearXlsxPath) > 3000, 'yearly XLSX is generated');
 
     $report = $service->generateStored(2025, 8, 'ksiegowosc@example.test');
     $createdFiles[] = $root . '/' . $report['file_path'];
@@ -238,8 +257,10 @@ try {
         'reportSettings'=>$state,
         'user'=>['email'=>'admin@example.test'],
     ]);
-    check(str_contains($salesHtml, 'Najważniejsze kwoty sprzedaży') && str_contains($salesHtml, 'action="/admin/sales/reports/generate"'), 'sales panel renders with the configured admin base path');
-    check(str_contains($salesHtml, 'href="/admin/sales/export-xlsx?year=2025&amp;month=8"'), 'XLSX export URL includes the admin base path');
+    check(str_contains($salesHtml, 'Najważniejsze kwoty sprzedaży') && str_contains($salesHtml, 'action="/admin/sales/export-xlsx"'), 'sales panel renders with the configured admin base path');
+    check(str_contains($salesHtml, 'Wygeneruj raport miesięczny') && str_contains($salesHtml, 'Wygeneruj raport roczny'), 'sales panel clearly offers monthly and yearly reports');
+    check(str_contains($salesHtml, 'name="range" value="month"') && str_contains($salesHtml, 'name="range" value="year"'), 'report forms send an explicit safe range');
+    check(!str_contains($salesHtml, 'Zapis po zakończeniu miesiąca'), 'sales panel contains no ambiguous save-after-month action');
     check(strpos($salesHtml, 'sales-report-panel') > strpos($salesHtml, 'sales-items-panel'), 'report generation is placed below the sales details');
 
     $settingsHtml = View::capture('admin/settings/index', [
@@ -251,6 +272,8 @@ try {
     check(str_contains($settingsHtml, 'name="sales_vat_rate"') && str_contains($settingsHtml, 'value="5.00"'), 'settings panel shows editable 5% VAT rate');
     check(str_contains($settingsHtml, 'name="sales_report_email"') && str_contains($settingsHtml, 'name="sales_report_day"'), 'settings panel renders cyclical email and day fields');
     check(str_contains($settingsHtml, 'brand-upload-preview--logo'), 'settings panel uses the contained logo preview');
+    $adminCss = (string)file_get_contents($root . '/admin/assets/style.css');
+    check(preg_match('/\.brand-upload-preview--social img\s*\{[^}]*object-fit:\s*contain;/s', $adminCss) === 1, 'social sharing image preview contains the complete image');
 
     (new SalesReportRepository())->syncAllEmailStatuses();
     echo json_encode([
