@@ -5361,6 +5361,8 @@ input.visually-hidden-file {
   padding: 22px;
   border: 1px solid #dfe3e8;
   border-radius: 15px;
+  display: flex;
+  flex-direction: column;
   background: #fafbfc;
 }
 
@@ -5396,8 +5398,9 @@ input.visually-hidden-file {
 }
 
 .sales-report-generator-form {
+  margin-top: auto;
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) 120px;
+  grid-template-columns: minmax(115px, .8fr) 105px minmax(245px, 1.25fr);
   align-items: end;
   gap: 12px;
 }
@@ -5407,12 +5410,13 @@ input.visually-hidden-file {
 }
 
 .sales-report-generator-form .btn {
-  grid-column: 1 / -1;
+  grid-column: auto;
   width: 100%;
+  white-space: nowrap;
 }
 
 .sales-report-generator-form--year {
-  grid-template-columns: 150px minmax(220px, 1fr);
+  grid-template-columns: 120px minmax(245px, 1fr);
 }
 
 .sales-report-generator-form--year .btn {
@@ -5427,8 +5431,10 @@ input.visually-hidden-file {
 }
 
 .sales-report-footer-link {
-  margin-top: 20px;
-  text-align: right;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  text-align: center;
 }
 
 .sales-report-history {
@@ -5544,6 +5550,10 @@ input.visually-hidden-file {
 
   .sales-report-actions {
     justify-content: flex-start;
+  }
+
+  .sales-report-choices {
+    grid-template-columns: 1fr;
   }
 }
 

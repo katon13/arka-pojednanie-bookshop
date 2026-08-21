@@ -147,7 +147,7 @@ $reportYear = min($year, $currentYear);
       <form method="get" action="/sales/export-xlsx" class="sales-report-generator-form">
         <input type="hidden" name="range" value="month">
         <label class="field">Miesiąc<select name="month">
-          <?php foreach ([1=>'styczeń',2=>'luty',3=>'marzec',4=>'kwiecień',5=>'maj',6=>'czerwiec',7=>'lipiec',8=>'sierpień',9=>'wrzesień',10=>'październik',11=>'listopad',12=>'grudzień'] as $number=>$name): ?>
+          <?php foreach ([1=>'sty',2=>'lut',3=>'mar',4=>'kwi',5=>'maj',6=>'cze',7=>'lip',8=>'sie',9=>'wrz',10=>'paź',11=>'lis',12=>'gru'] as $number=>$name): ?>
             <option value="<?= $number ?>" <?= $month === $number ? 'selected' : '' ?>><?= htmlspecialchars(ucfirst($name)) ?></option>
           <?php endforeach; ?>
         </select></label>
@@ -163,7 +163,6 @@ $reportYear = min($year, $currentYear);
         <label class="field">Rok<input name="year" type="number" min="2020" max="<?= $currentYear ?>" value="<?= $reportYear ?>" required></label>
         <button class="btn" type="submit">Wygeneruj raport roczny</button>
       </form>
-      <?php if ($reportYear === $currentYear): ?><small class="sales-report-current-note">Bieżący rok obejmuje dane do dzisiaj.</small><?php endif; ?>
     </article>
   </div>
 
