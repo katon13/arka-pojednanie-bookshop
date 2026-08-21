@@ -2567,18 +2567,27 @@ pre {
 }
 
 .featured-admin-preview {
+  position: relative;
   height: 240px;
+  padding: 14px;
+  border: 1px solid #e8eaed;
+  border-radius: 11px;
   display: grid;
   place-items: center;
+  overflow: hidden;
+  background: #fff;
 }
 
 .featured-admin-preview img {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  position: absolute;
+  inset: 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  max-width: none;
+  max-height: none;
   display: block;
   object-fit: contain;
+  object-position: center;
 }
 
 .homepage-hero-card {
@@ -3946,24 +3955,32 @@ input.visually-hidden-file {
 }
 
 .page-image-preview {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 10;
   margin: 14px 0;
+  padding: 14px;
+  border: 1px solid #e2e5e9;
   border-radius: 12px;
   display: grid;
   place-items: center;
   overflow: hidden;
   color: var(--muted);
-  background: #eceef2;
+  background: #f7f8fa;
   font-size: 12px;
   font-weight: 750;
 }
 
 .page-image-preview img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  max-width: none;
+  max-height: none;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 /* Transactional mail register */
